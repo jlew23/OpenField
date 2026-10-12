@@ -1,0 +1,17 @@
+.env
+.venv/
+__pycache__/
+*.pyc
+runs/
+*.log
+.DS_Store
+
+.runtime-webhook.json
+
+.env.*
+!.env.example
+*.pem
+*.key
+
+.venv-face/
+models/
