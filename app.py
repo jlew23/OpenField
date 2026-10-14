@@ -6,6 +6,16 @@ from fastapi.staticfiles import StaticFiles
 from pipeline import run
 ROOT=Path(__file__).resolve().parent
 RUNS=ROOT/'runs';RUNS.mkdir(exist_ok=True)
+def to_win_path(p):
+    s = str(Path(p).resolve())
+    if shutil.which('wslpath'):
+        try:
+            return subprocess.check_output(['wslpath', '-w', s], text=True).strip()
+        except Exception:
+            pass
+    return s
+
+
 app=FastAPI();jobs={}
 @app.get('/')
 def index():return FileResponse(ROOT/'static/index.html')
@@ -23,7 +33,7 @@ def create(video:UploadFile=File(...),prompt:str=Form('person'),provider:str=For
         'status':'Starting',
         'id':ident,
         'logs':[init_msg],
-        'folder_path':str(folder.resolve())
+        'folder_path':to_win_path(folder)
     }
     (folder/'job.log').write_text(init_msg + '\n')
     (folder/'status.json').write_text(json.dumps(jobs[ident]))
@@ -72,7 +82,7 @@ def get(ident:str):
             log_file = RUNS/ident/'job.log'
             if log_file.exists():
                 data['logs'] = [l.strip() for l in log_file.read_text().splitlines() if l.strip()]
-            data['folder_path'] = str((RUNS/ident).resolve())
+            data['folder_path'] = to_win_path(RUNS/ident)
             return data
         raise HTTPException(404)
     return jobs[ident]
@@ -80,12 +90,16 @@ def get(ident:str):
 @app.post('/jobs/{ident}/open-folder')
 def open_folder(ident:str):
     if len(ident)!=32 or not (RUNS/ident).exists():raise HTTPException(404)
-    target = str((RUNS/ident).resolve())
+    target = (RUNS/ident).resolve()
+    win_path = to_win_path(target)
     try:
-        subprocess.run(['explorer.exe', target], check=False)
+        subprocess.run(['cmd.exe', '/c', 'start', '""', win_path], check=False)
     except Exception:
-        pass
-    return {'folder_path': target}
+        try:
+            subprocess.run(['explorer.exe', win_path], check=False)
+        except Exception:
+            pass
+    return {'folder_path': win_path}
 
 @app.post('/jobs/{ident}/seedance')
 def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:UploadFile|None=File(None)):

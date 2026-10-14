@@ -1,3 +1,4 @@
+from pathlib import Path
 # Copyright (c) Meta Platforms, Inc. and affiliates. All Rights Reserved
 
 # pyre-unsafe
@@ -596,9 +597,12 @@ def build_sam3_image_model(
         A SAM3 image model
     """
     if bpe_path is None:
-        bpe_path = pkg_resources.resource_filename(
-            "sam3", "assets/bpe_simple_vocab_16e6.txt.gz"
-        )
+        try:
+            bpe_path = pkg_resources.resource_filename("sam3", "assets/bpe_simple_vocab_16e6.txt.gz")
+        except Exception:
+            bpe_path = None
+        if not bpe_path or not os.path.exists(str(bpe_path)):
+            bpe_path = str(Path(__file__).resolve().parent / "assets" / "bpe_simple_vocab_16e6.txt.gz")
 
     # Create visual components
     compile_mode = "default" if compile else None
@@ -695,9 +699,12 @@ def build_sam3_video_model(
         Sam3VideoInferenceWithInstanceInteractivity: The instantiated dense tracking model
     """
     if bpe_path is None:
-        bpe_path = pkg_resources.resource_filename(
-            "sam3", "assets/bpe_simple_vocab_16e6.txt.gz"
-        )
+        try:
+            bpe_path = pkg_resources.resource_filename("sam3", "assets/bpe_simple_vocab_16e6.txt.gz")
+        except Exception:
+            bpe_path = None
+        if not bpe_path or not os.path.exists(str(bpe_path)):
+            bpe_path = str(Path(__file__).resolve().parent / "assets" / "bpe_simple_vocab_16e6.txt.gz")
 
     # Build Tracker module
     tracker = build_tracker(apply_temporal_disambiguation=apply_temporal_disambiguation)
@@ -1105,9 +1112,12 @@ def build_sam3_multiplex_video_predictor(
         Sam3MultiplexVideoPredictor: The fully-initialized predictor
     """
     if bpe_path is None:
-        bpe_path = pkg_resources.resource_filename(
-            "sam3", "assets/bpe_simple_vocab_16e6.txt.gz"
-        )
+        try:
+            bpe_path = pkg_resources.resource_filename("sam3", "assets/bpe_simple_vocab_16e6.txt.gz")
+        except Exception:
+            bpe_path = None
+        if not bpe_path or not os.path.exists(str(bpe_path)):
+            bpe_path = str(Path(__file__).resolve().parent / "assets" / "bpe_simple_vocab_16e6.txt.gz")
 
     from sam3.model.sam3_multiplex_base import Sam3MultiplexPredictorWrapper
     from sam3.model.sam3_multiplex_detector import Sam3MultiplexDetector
