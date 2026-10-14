@@ -17,3 +17,5 @@ runs/
 models/
 .github_token
 *.token
+
+sam3/

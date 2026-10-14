@@ -1,4 +1,4 @@
-﻿from pathlib import Path
+from pathlib import Path
 from fractions import Fraction
 import os, shutil, json, time
 import av, numpy as np, requests
@@ -173,12 +173,12 @@ def run(src,directory,prompt='person',provider='local',status=print):
     shutil.copyfile(directory/'depth-raw.mp4',directory/'depth.mp4')
     status('Segmenting person silhouette masks...')
     from raw_masks import segment_raw,clean_border_fragments
-    raw_dir=clean_border_fragments(segment_raw(directory/'original.mp4',directory,prompt))
+    raw_dir=clean_border_fragments(segment_raw(directory/'original.mp4',directory,prompt,status=status))
     status('Compositing depth subject over original background...')
     composite(directory/'original.mp4',directory/'depth.mp4',raw_dir,directory,src)
     from audio_workflow import prepare_seedance_video
     status('Pitching isolated vocals +3 semitones and embedding in prepared video...')
     prepare_seedance_video(directory)
-    meta.update(prompt=prompt,depth_provider='local' if is_local else provider,sam_space=SAM,mask_method='Local Segmentation')
+    meta.update(prompt=prompt,depth_provider='local' if is_local else provider,sam_space=SAM,mask_method='Local SAM 3 (GPU)')
     (directory/'manifest.json').write_text(json.dumps(meta,indent=2))
     status('Finished! Prepared video and all stems are saved in your run folder.')
