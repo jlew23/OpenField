@@ -341,9 +341,9 @@ def load_video_frames_from_video_file_using_cv2(
             f"The file may be corrupted, empty, or encoded with an unsupported codec."
         )
 
-    # Convert to tensor
-    frames_np = np.stack(frames, axis=0).astype(np.float32)  # (T, H, W, C)
-    video_tensor = torch.from_numpy(frames_np).permute(0, 3, 1, 2)  # (T, C, H, W)
+    # Convert to tensor efficiently (avoid 19GB float32 explosion)
+    frames_np = np.stack(frames, axis=0)  # (T, H, W, C) uint8
+    video_tensor = torch.from_numpy(frames_np).permute(0, 3, 1, 2).to(torch.float16)  # (T, C, H, W) half precision
 
     # pyrefly: ignore [bad-assignment]
     img_mean = torch.tensor(img_mean, dtype=torch.float16).view(1, 3, 1, 1)

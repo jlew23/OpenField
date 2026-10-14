@@ -669,7 +669,7 @@ def download_ckpt_from_hf(version="sam3"):
         ckpt_name = "sam3.1_multiplex.pt"
         cfg_name = "config.json"
     else:
-        repo_id = "facebook/sam3"
+        repo_id = "bodhicitta/sam3"
         ckpt_name = "sam3.pt"
         cfg_name = "config.json"
     _ = hf_hub_download(repo_id=repo_id, filename=cfg_name)

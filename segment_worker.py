@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 from pathlib import Path
 import av, numpy as np, urllib.request
 from PIL import Image
@@ -27,7 +27,8 @@ def main():
     options = ImageSegmenterOptions(
         base_options=BaseOptions(model_asset_path=str(model_path)),
         running_mode=VisionRunningMode.VIDEO,
-        output_category_mask=True
+        output_category_mask=True,
+        output_confidence_masks=True
     )
     
     frame_count = 0
@@ -36,9 +37,15 @@ def main():
             rgb = frame.to_ndarray(format='rgb24')
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
             result = segmenter.segment_for_video(mp_image, round(i * 1000 / 24))
-            mask_data = result.category_mask.numpy_view()
-            binary_mask = (mask_data > 0).astype(np.uint8) * 255
-            # If shape has channel dim, squeeze
+            
+            if result.confidence_masks and len(result.confidence_masks) > 0:
+                conf = result.confidence_masks[0].numpy_view()
+                binary_mask = (conf > 0.4).astype(np.uint8) * 255
+            else:
+                cat = result.category_mask.numpy_view()
+                # 1 = person, 0 = background, 255 = unassigned
+                binary_mask = ((cat == 1) & (cat != 255)).astype(np.uint8) * 255
+
             if binary_mask.ndim == 3 and binary_mask.shape[-1] == 1:
                 binary_mask = binary_mask.squeeze(-1)
             Image.fromarray(binary_mask).save(out_dir / f'mask_{i:04d}.png')

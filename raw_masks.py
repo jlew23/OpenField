@@ -30,12 +30,11 @@ def segment_local(video, folder, prompt='person', status=print):
                 if l.startswith("[SAM3]"):
                     status(l)
         proc.wait()
-        if proc.returncode == 0:
-            mask_count = len(list(out.glob('mask_*.png')))
-            if mask_count > 0:
-                status(f"Local SAM 3 generated {mask_count} masks successfully.")
-                return out
-        status("Local SAM 3 encountered an issue, falling back to secondary segmenter...")
+        mask_count = len(list(out.glob('mask_*.png')))
+        if mask_count > 0:
+            status(f"Local SAM 3 generated {mask_count} masks successfully.")
+            return out
+        status("Local SAM 3 encountered an issue and produced no masks, falling back to secondary segmenter...")
 
     # Priority 2: Secondary segmenter (MediaPipe)
     status("Segmenting with secondary local segmenter...")
