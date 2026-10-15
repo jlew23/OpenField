@@ -1,54 +1,1280 @@
-<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>TEIN Genjustsu — Open Source Workflow</title><style>
-/* Matched to TeinAI-Client DEV/src/index.css design tokens. */
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Schibsted+Grotesk:wght@600;700;800;900&display=swap');
-
-:root{color-scheme:dark;--bg:#101114;--card:#191a20;--line:#303139;--muted:#999ba9;--accent:#c5bdff}*{box-sizing:border-box;min-width:0}body{margin:0;background:var(--bg);color:#f4f4f7;font:15px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}main{max-width:1120px;margin:auto;padding:32px 28px 80px}header{display:flex;justify-content:space-between;align-items:center;padding-bottom:24px;border-bottom:1px solid var(--line)}.brand{font-size:20px;font-weight:850;letter-spacing:-1px}.eyebrow{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}h1{font-size:clamp(30px,4vw,46px);letter-spacing:-1.8px;margin:32px 0 10px}h2{font-size:21px;letter-spacing:-.5px;margin:0}h3{font-size:14px;margin:0 0 12px}p{color:var(--muted);line-height:1.6;margin:8px 0 20px}.steps{display:grid;grid-template-columns:repeat(4,1fr);margin:28px 0;gap:8px}.steps a{background:#1b1c22;border:1px solid var(--line);border-radius:10px;padding:14px;color:#d6d6df;text-decoration:none;font-size:13px}.steps b{color:var(--accent);margin-right:8px}.panel{padding:26px;border:1px solid var(--line);border-radius:18px;background:var(--card);margin:18px 0;scroll-margin-top:20px}.heading{display:flex;gap:14px;align-items:center;margin-bottom:18px}.number{display:grid;place-items:center;width:30px;height:30px;flex-shrink:0;border:1px solid #4a465e;border-radius:9px;color:var(--accent);font-size:12px}.badge{display:inline-block;padding:6px 10px;border-radius:6px;background:#292638;color:var(--accent);font-size:11px;letter-spacing:.5px}.row{display:flex;gap:14px;align-items:center;flex-wrap:wrap}.split{display:grid;grid-template-columns:1fr 1fr;gap:18px}.upload{display:flex;align-items:center;gap:16px;border:1px dashed #4b4b59;border-radius:12px;padding:22px;background:#14151a;cursor:pointer;position:relative;overflow:hidden}.upload:hover{border-color:var(--accent);background:#1f1d2b}.upload input{position:absolute;inset:0;opacity:0;width:100%;cursor:pointer}.upload:focus-within{outline:2px solid var(--accent)}.upload .icon{font-size:25px;color:var(--accent);flex-shrink:0}.upload strong,.upload small{display:block;overflow-wrap:anywhere}.upload small{color:var(--muted);margin-top:6px;font-size:12px}.upload img{width:62px;height:70px;object-fit:contain;background:#fff;border-radius:8px}.upload img[hidden]{display:none}button,.button{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);border:1px solid transparent;color:#211b3a;padding:12px 18px;border-radius:9px;font:600 14px inherit;font-family:inherit;font-size:14px;font-weight:650;cursor:pointer;text-decoration:none;max-width:100%;white-space:normal;text-align:center}button:hover,.button:hover{filter:brightness(1.1)}button:disabled{opacity:.45;cursor:wait}.secondary{background:transparent;color:#dedde7;border-color:#44434f}label.field{display:grid;gap:9px;font-size:13px;color:#dedee5}input:not([type=file]),select,textarea{width:100%;font:inherit;color:#eeeef5;background:#111216;border:1px solid #3a3b46;border-radius:9px;padding:12px;outline:none}textarea{line-height:1.65;min-height:190px;resize:vertical}textarea:focus,input:focus,select:focus{border-color:var(--accent)}details{margin-top:18px;border-top:1px solid var(--line);padding-top:16px}summary{cursor:pointer;color:#b7b6c3;font-size:13px}details .split{margin-top:16px}.actions{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-top:20px}.hint{font-size:12px;color:var(--muted);line-height:1.6}.status{padding:16px 20px;border:1px solid #424050;border-radius:12px;background:#201e2a;display:flex;gap:12px;align-items:center;font-size:13px;line-height:1.6;overflow-wrap:anywhere}.status.error{border-color:#74494e;background:#2b1e22}.dot{width:8px;height:8px;background:var(--accent);border-radius:50%;flex-shrink:0}.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}.tabs button{background:transparent;color:var(--muted);padding:9px 12px;font-size:12px}.tabs button.active{background:#333042;color:#f2efff}.viewer{background:#09090c;border:1px solid #303039;border-radius:12px;overflow:hidden}video{display:block;width:100%;max-height:480px;background:#09090c}.viewer-foot{display:flex;justify-content:space-between;gap:12px;padding:14px 16px;align-items:center}.viewer-foot a{font-size:12px;color:var(--accent)}.empty{padding:48px 24px;text-align:center;color:var(--muted);font-size:13px;border:1px dashed #373740;border-radius:12px}.meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:18px}.meta span{font-size:12px;color:#b7b6c3;background:#25252e;padding:8px 12px;border-radius:7px}pre{white-space:pre-wrap;overflow-wrap:anywhere;font:13px/1.7 inherit;color:#b8b7c5}.download{display:flex;gap:14px;flex-wrap:wrap;margin-top:16px}.download a{font-size:12px;color:var(--muted)}[hidden]{display:none!important}footer{margin-top:30px;color:var(--muted);font-size:12px}#upgrade-status{margin-top:12px;color:var(--accent);font-size:13px}button:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}@media(max-width:640px){main{padding:20px 14px 50px}.panel{padding:18px}.split{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.upload{padding:17px}h1{letter-spacing:-1px}.actions button{width:100%}.viewer-foot{flex-wrap:wrap}}
-
-:root{color-scheme:light;--bg:#fafafb;--card:#fff;--line:#ececef;--muted:#7a7e8a;--accent:#1f18c0}body{color:#2b2f3a;font-family:'Hanken Grotesk',sans-serif}h1{font-family:'Schibsted Grotesk',sans-serif;font-weight:800;color:#16181f}h2,h3,.brand{font-family:'Space Grotesk',sans-serif;color:#16181f;letter-spacing:-.04em}.eyebrow,.number,.badge{font-family:'IBM Plex Mono',monospace}.panel{border-radius:16px;box-shadow:0 1px 2px #16181f0d,0 12px 32px -12px #16181f14}.steps a{background:#fff;color:#2b2f3a}.upload{background:#fafafb;border-color:#d7d9e0}.upload:hover{background:#eef0fb;border-color:#1f18c0}.upload small{color:#7a7e8a}button,.button{background:#1f18c0;color:#fff;border-radius:8px}.secondary{background:#fff;color:#2b2f3a;border-color:#dfe2e8}.badge,.number{background:#eef0fb;color:#1f18c0;border-color:#e3e3f4}label.field{color:#2b2f3a}input:not([type=file]),select,textarea{background:#fafafb;color:#2b2f3a;border-color:#dfe2e8}.status{background:#eef0fb;border-color:#e0e1f0;color:#2b2f3a}.status.error{background:#fff3f3;border-color:#edd1d1}.tabs button{color:#7a7e8a}.tabs button.active{background:#eef0fb;color:#1f18c0}.meta span{background:#f4f4f7;color:#656977}.viewer-foot{background:#fff}.viewer{border-color:#ececef}summary,pre{color:#656977}.empty{border-color:#dfe2e8}.companion{width:92px;height:92px;object-fit:contain;flex-shrink:0;background:#f4f4f7;border-radius:16px}.hero{display:flex;align-items:center;justify-content:space-between;gap:20px}.hero .companion{width:140px;height:140px;background:transparent}.heading .companion{width:48px;height:48px;margin-left:auto;border-radius:10px}header{height:64px;padding-bottom:12px}.brand{font-size:26px}@media(max-width:640px){.hero .companion{width:90px;height:90px}.hero h1{font-size:30px}}
-</style></head><body><main>
-<header><div class="brand">Genjustsu <span class="eyebrow">/ TEIN</span></div><a class="button secondary" href="https://tein.ai" target="_blank" rel="noopener">Get early access ↗</a></header>
-<div class="hero"><div><span class="eyebrow">TEIN GENJUSTSU · OPEN SOURCE WORKFLOW</span><h1>Your scene.<br>New characters.</h1><p>Prepare your video, review a draft, then finish in full quality.</p></div><img class="companion" src="/static/companions/video.webp" alt="TEIN video companion"></div>
-<nav class="steps" aria-label="Workflow"><a href="#source"><b>01</b>Upload</a><a href="#review"><b>02</b>Review input</a><a href="#draft"><b>03</b>Create draft</a><a href="#final"><b>04</b>Approve & export</a></nav>
-<div id="status" class="status" role="status"><span class="dot"></span><span id="status-text">Start by choosing your original video.</span></div>
-<section class="panel" id="source"><div class="heading"><span class="number">01</span><h2>Start with your video</h2></div>
-<form id="form"><label class="upload"><span class="icon">↑</span><span><strong>Choose original video</strong><small data-filename>MP4 or MOV · up to 30 seconds</small></span><input aria-label="Original video" required type="file" name="video" accept="video/*"></label>
-<label class="field" style="margin-top:20px">Preparation method<select name="mode"><option value="depth">Advanced · Depth + SAM</option><option value="face_mesh">Fast · Face mesh (no depth or SAM)</option><option value="depth_mesh">Advanced + Face mesh · Depth + SAM + facial motion</option></select><span class="hint">Fast mode overlays facial motion on the original video and embeds +3 pitched vocals. Both mesh options currently support one centered speaker and require face-mesh setup. Advanced + Face mesh adds facial motion over the depth composite.</span></label><details><summary>Preparation settings · depth mode only</summary><div class="split"><label class="field">Subject to replace<input name="prompt" value="person" required><span class="hint">“Person” includes all detected people.</span></label><label class="field">Depth provider<select name="provider"><option value="local" selected>Local (RTX 4070 CUDA) · Depth Anything V2</option><option value="replicate">Replicate · Depth Anything Video</option><option value="huggingface">Hugging Face · Video Depth Anything</option><option value="replicate-chenxwh">Replicate · alternate model</option></select></label></div><p class="hint">Depth colors are preserved. Preparation runs at 24 fps, up to 960 px. Media is uploaded to the selected providers.</p></details>
-<div class="actions"><span class="hint">All modes include isolated vocals pitched +3.</span><button id="go">Prepare video →</button></div></form></section>
-  <section class="panel" id="console-panel" style="border-left: 4px solid #38bdf8;">
-    <div class="heading">
-      <span class="number" style="background:#0284c7;color:#fff;">LOG</span>
-      <h2>Live Processing Console</h2>
-      <button type="button" id="open-folder-btn" class="secondary" style="margin-left:auto;font-size:12px;padding:6px 14px;cursor:pointer;" onclick="openFolder()">📂 Open Output Folder</button>
-    </div>
-    <p class="hint" id="folder-path-display">Files are saved locally to: <code>runs/&lt;job_id&gt;</code></p>
-    <div id="log-box" style="background:#0a0c10;color:#38bdf8;font-family:Consolas,monospace;font-size:13px;line-height:1.6;padding:14px;border-radius:8px;max-height:220px;min-height:90px;overflow-y:auto;white-space:pre-wrap;border:1px solid #232936;box-shadow:inset 0 1px 4px rgba(0,0,0,0.6);margin-top:10px;">Ready. Choose your video above to begin local processing.</div>
-  </section>
-  <section class="panel" id="review"><div class="heading"><span class="number">02</span><h2>Review the prepared input</h2><img class="companion" src="/static/companions/language.webp" alt="TEIN review companion"></div><p class="hint">Review the full mask or face-mesh tracking, and listen to the embedded vocals before generating.</p><div id="input-empty" class="empty">Your original video and prepared previews will appear here.</div><div id="input-ready" hidden><div class="tabs" id="tabs" role="group" aria-label="Preview selection"></div><div class="viewer"><video id="input-video" controls playsinline preload="metadata"></video><div class="viewer-foot"><span id="input-caption" class="hint"></span><a id="input-download" download>Download video ↓</a></div></div><div style="margin-top:20px;padding:18px;border:1px solid #555069;border-radius:12px"><h3>Required · Review the complete input</h3><p class="hint">Depth: check the entire mask for missing areas and background spill. Fast face mesh: check face tracking, eyes, mouth and alignment across every frame. Listen to the pitched vocals.</p><p id="mask-review-status" role="status">Mask review required.</p><label class="row hint"><input type="checkbox" id="review-check" style="width:auto"> I reviewed the entire prepared clip; its mask or face mesh is correctly aligned throughout.</label><div class="row" style="margin-top:14px"><button type="button" id="approve-mask" disabled>Approve input</button><button type="button" class="secondary" id="reject-mask">Input needs fixing</button></div></div><details><summary>Audio downloads</summary><div class="download" id="audio-links"></div></details></div></section>
-<section class="panel" id="draft"><div class="heading"><span class="number">03</span><h2>Create your draft</h2><img class="companion" src="/static/companions/seedance-2-5.webp" alt="Seedance companion"></div><div class="meta"><span>Provider · <b>Enhancor</b></span><span id="mode-label">Seedance · Edit</span><span>Quality · Draft preview</span></div><form id="seedance"><div class="split"><label class="upload"><img id="sirio-img" alt="Character 1 reference" hidden><span><strong>Character 1 · required</strong><small data-filename>Choose character reference</small></span><input type="file" name="sirio" aria-label="Character 1 reference" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm"></label><label class="upload"><img id="tein-img" alt="Character 2 reference" hidden><span><strong>Character 2 · optional</strong><small data-filename>Choose character reference</small></span><input type="file" name="tein" aria-label="Character 2 reference" accept="image/png,image/jpeg,image/webp"></label></div><label class="field" style="margin-top:22px">Generation prompt<textarea name="prompt" required rows="7">Replace the complete selected subject with the supplied character reference in every frame, including hair, hands, clothing and footwear. Preserve the original background, camera framing, lighting, motion and timing. Match the embedded speech exactly without extra dialogue. Use the embedded vocals in @Video1 for performance and lip synchronization. If using two characters, specify which subject each reference replaces before submitting.</textarea></label><div class="actions"><span class="hint">Review this prompt first. Full quality is a separate approval below.</span><button id="draft-button" disabled>Create draft →</button></div></form></section>
-<section class="panel" id="final"><div class="heading"><span class="number">04</span><h2>Approve & export</h2></div><p class="hint">Every finished preview uses the entire original source audio, including voices and music.</p><div id="final-empty" class="empty">Your draft will appear here when generation finishes.</div><div id="final-ready" hidden><div class="viewer"><video id="final-video" controls playsinline preload="metadata"></video><div class="viewer-foot"><span class="badge" id="quality-label">DRAFT PREVIEW</span><a id="final-download" download>Download preview ↓</a></div></div><div class="actions"><div><h3 style="margin-bottom:4px">Happy with this draft?</h3><span class="hint">Approve it to generate the 1080p version through Enhancor.</span></div><button id="upgrade" disabled>Approve & generate 1080p →</button></div><div id="upgrade-status" role="status"></div></div><details id="sent-details" hidden><summary>View submitted prompt & generation ID</summary><p class="hint" id="generation-id"></p><pre id="sent-prompt"></pre><a id="raw-link" class="hint">Download raw Seedance result</a></details><details><summary>Restore original audio onto your Flow / AI video</summary><form id="finish" style="margin-top:16px"><label class="upload"><span class="icon">↑</span><span><strong>Choose video generated in Flow</strong><small data-filename>We’ll restore the original source audio.</small></span><input name="video" aria-label="Seedance result" type="file" accept="video/*" required></label><div class="actions"><button class="secondary">Restore original audio</button></div></form></details></section><section class="panel"><div class="actions" style="margin-top:0"><div><span class="eyebrow">COMING TO TEIN</span><h2 style="margin-top:8px">The cheapest APIs, open source workflows, and more.</h2><p style="margin-bottom:0">Sign up for early access to TEIN.</p></div><a class="button" href="https://tein.ai" target="_blank" rel="noopener">Join the waitlist ↗</a></div></section><footer>TEIN Studio · Original depth colors. Original audio in your final export.</footer></main>
-<script>
-const $=s=>document.querySelector(s);
-async function openFolder(){if(!jobId){alert("Start a job first.");return;}try{await json('/jobs/'+jobId+'/open-folder',{method:'POST'});}catch(e){alert("Output folder: runs/"+jobId);}}
-let jobId=new URLSearchParams(location.search).get('job'),saved={},maskApproved=false,maskFingerprint="",selectedPreview="",busy=false,pollTimer;const base=()=>'/runs/'+jobId+'/';
-function status(t,error=false){$('#status-text').textContent=t;$('#status').classList.toggle('error',error)}
-async function exists(file){return (await fetch(base()+file,{method:'HEAD',cache:'no-store'})).ok}
-async function json(url,options){const r=await fetch(url,options);const j=await r.json();if(!r.ok)throw Error(typeof j.detail==='string'?j.detail:'The request could not be completed.');return j}
-for(const input of document.querySelectorAll('input[type=file]'))input.onchange=()=>{const f=input.files[0];if(!f)return;input.closest('.upload').querySelector('[data-filename]').textContent=f.name;const img=input.closest('.upload').querySelector('img');if(input.name==='sirio')$('#mode-label').textContent=f.type.startsWith('video/')?'Seedance · Omni reference':'Seedance · Edit';if(img&&!f.type.startsWith('video/')){img.src=URL.createObjectURL(f);img.hidden=false}};
-async function refresh(){if(!jobId)return;const items=[['Prepared input','seedance-input.mp4','Prepared video + isolated vocals pitched +3'],['Original','original.mp4','Original video'],['Depth','depth.mp4','Exact depth colors from the model'],['Mask','mask.mp4','Full subject mask']];const present=await Promise.all(items.map(x=>exists(x[1])));$('#tabs').replaceChildren();items.forEach((x,i)=>{if(!present[i])return;const b=document.createElement('button');b.type='button';b.textContent=x[0];b.dataset.file=x[1];b.onclick=()=>{selectedPreview=x[1];document.querySelectorAll('#tabs button').forEach(t=>t.classList.remove('active'));b.classList.add('active');$('#input-video').src=base()+x[1];$('#input-caption').textContent=x[2];$('#input-download').href=base()+x[1]};$('#tabs').append(b)});if(present.some(Boolean)){$('#input-empty').hidden=true;$('#input-ready').hidden=false;([...document.querySelectorAll('#tabs button')].find(b=>b.dataset.file===selectedPreview)||$('#tabs button')).click()}const review=await json('/jobs/'+jobId+'/mask-review');maskApproved=review.approved;maskFingerprint=review.fingerprint||'';$('#mask-review-status').textContent=review.note||review.status;$('#review-check').checked=maskApproved;$('#approve-mask').disabled=true;$('#draft-button').disabled=!present[0]||busy||!maskApproved;
-$('#audio-links').replaceChildren();for(const [file,title] of [['vocals.wav','Isolated vocals'],['vocals-plus3.wav','Vocals +3'],['music.wav','Music stem']]){if(await exists(file)){const a=document.createElement('a');a.href=base()+file;a.download=file;a.textContent=title+' ↓';$('#audio-links').append(a)}}
-for(const name of ['sirio','tein']){if(saved[name])continue;for(const ext of ['png','jpg','jpeg','webp','mp4','mov','webm']){const file=name+'-reference.'+ext;if(await exists(file)){saved[name]=file;const img=$('#'+name+'-img');if(!['mp4','mov','webm'].includes(ext)){img.src=base()+file;img.hidden=false;}img.closest('.upload').querySelector('small').textContent='Saved reference · click to replace';break}}}
-if(await exists('generation.json')){const g=await json(base()+'generation.json');$('#mode-label').textContent=g.mode==='multi_reference'?'Seedance · Omni reference':'Seedance · Edit';$('#sent-details').hidden=false;$('#generation-id').textContent='Enhancor · '+g.request_id;$('#sent-prompt').textContent=g.prompt; if(!$('#seedance textarea').dataset.loaded){$('#seedance textarea').value=g.prompt;$('#seedance textarea').dataset.loaded='true'}$('#raw-link').href=base()+'seedance-result.mp4';}
-const hd=await exists('hd/final-preview.mp4'),draft=await exists('final-preview.mp4');if(draft||hd){const url=base()+(hd?'hd/':'')+'final-preview.mp4';$('#final-empty').hidden=true;$('#final-ready').hidden=false;if($('#final-video').getAttribute('src')!==url)$('#final-video').src=url;$('#final-download').href=url;$('#quality-label').textContent=hd?'1080P · ORIGINAL AUDIO':'DRAFT · ORIGINAL AUDIO';$('#final-download').textContent=hd?'Download 1080p ↓':'Download draft ↓';$('#upgrade').disabled=busy||hd;}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField — Video Subject Replacement & Depth Conditioning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700;800&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg-yellow: #EAFF00;
+  --bg-yellow-pale: #F4FF59;
+  --bg-yellow-card: #FFFFFF;
+  --text-black: #000000;
+  --text-dim: #333333;
+  --text-sub: #555555;
+  --border-black: #000000;
+  --shadow-hard: 4px 4px 0px #000000;
+  --shadow-hard-lg: 7px 7px 0px #000000;
+  --shadow-hard-sm: 2px 2px 0px #000000;
+  --accent-cyan: #00E5FF;
+  --accent-green: #00E676;
+  --accent-orange: #FF5722;
+  --card-radius: 12px;
 }
-async function watch(){clearTimeout(pollTimer);try{const j=await json('/jobs/'+jobId);busy=j.state==='running';status(j.status,j.state==='error');if(j.logs&&j.logs.length){const b=$('#log-box');b.textContent=j.logs.join('\n');b.scrollTop=b.scrollHeight;}if(j.folder_path){$('#folder-path-display').innerHTML='Files are saved to: <strong style="color:#f1f5f9;user-select:all;">'+j.folder_path+'</strong>';}$('#go').disabled=busy;$('#draft-button').disabled=busy||$('#input-ready').hidden||!maskApproved;if(busy){$('#upgrade').disabled=true;pollTimer=setTimeout(watch,2000)}else await refresh()}catch(e){status(e.message,true);if($('#log-box'))$('#log-box').textContent+='\n[ERROR] '+e.message;}}
-$('#form').onsubmit=async e=>{e.preventDefault();$('#go').disabled=true;try{status('Uploading and preparing your video…');const j=await json('/jobs',{method:'POST',body:new FormData(e.target)});location.href='/?job='+j.id}catch(e){status(e.message,true);$('#go').disabled=false}};
-$('#seedance').onsubmit=async e=>{e.preventDefault();if(!jobId)return;if(!maskApproved){status('Review and approve the mask first.',true);return}const button=$('#draft-button');button.disabled=true;try{const data=new FormData(e.target);for(const name of ['sirio','tein']){if(!e.target.elements[name].files.length){if(!saved[name]){if(name==='tein'){data.delete(name);continue}throw Error('Choose Character 1’s reference first.');}data.set(name,new File([await (await fetch(base()+saved[name])).blob()],saved[name]))}}status('Uploading references and creating your Enhancor draft…');await json('/jobs/'+jobId+'/seedance',{method:'POST',body:data});await watch()}catch(e){status(e.message,true);button.disabled=false}};
-$('#finish').onsubmit=async e=>{e.preventDefault();if(!jobId){status('Prepare your original video first.',true);return}const b=e.target.querySelector('button');b.disabled=true;try{status('Restoring your entire original audio…');await json('/jobs/'+jobId+'/finish',{method:'POST',body:new FormData(e.target)});await refresh();status('Preview ready with original audio.')}catch(e){status(e.message,true)}finally{b.disabled=false}};
-$('#upgrade').onclick=async()=>{$('#upgrade').disabled=true;try{const j=await json('/jobs/'+jobId+'/hd',{method:'POST'});$('#upgrade-status').textContent='Generating your approved draft in 1080p…';pollHD()}catch(e){$('#upgrade-status').textContent=e.message;$('#upgrade').disabled=false}};
-async function pollHD(){try{const j=await json('/jobs/'+jobId+'/hd');$('#upgrade-status').textContent=j.status;if(j.state==='running')setTimeout(pollHD,4000);else{await refresh();if(j.state==='error')$('#upgrade').disabled=false}}catch(e){$('#upgrade-status').textContent=e.message}}
-$('#review-check').onchange=()=>{$('#approve-mask').disabled=!$('#review-check').checked};
-async function saveReview(approved){try{const data=new FormData();data.set('approved',approved);data.set('fingerprint',maskFingerprint);data.set('note',approved?'Prepared input approved after full-clip visual review.':'Mask needs correction. Seedance submission is blocked.');await json('/jobs/'+jobId+'/mask-review',{method:'POST',body:data});await refresh()}catch(e){status(e.message,true)}}
-$('#approve-mask').onclick=()=>saveReview(true);$('#reject-mask').onclick=()=>saveReview(false);
-if(jobId){refresh().then(watch).catch(e=>status(e.message,true));fetch('/jobs/'+jobId+'/hd').then(r=>r.ok?r.json():null).then(j=>{if(j&&j.state==='running'){$('#upgrade').disabled=true;pollHD()}})}
-</script></body></html>
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background-color: var(--bg-yellow);
+  color: var(--text-black);
+  font-family: 'Inter', -apple-system, sans-serif;
+  line-height: 1.5;
+  min-height: 100vh;
+  padding: 24px 16px 80px;
+}
+
+/* Background grid styling for subtle cyber feel */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background-image: 
+    linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px;
+  pointer-events: none;
+  z-index: -1;
+}
+
+main {
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+/* Header */
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0 28px;
+  border-bottom: 2px solid var(--border-black);
+  margin-bottom: 32px;
+}
+
+.top-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  background: var(--text-black);
+  color: var(--bg-yellow);
+  padding: 4px 10px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.top-tag::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-green);
+  border-radius: 50%;
+  box-shadow: 0 0 6px var(--accent-green);
+}
+
+.system-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-black);
+  border: 2px solid var(--border-black);
+  padding: 4px 12px;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+/* Hero Branding with stylized OpenField */
+.hero {
+  margin-bottom: 36px;
+}
+
+.brand-eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--text-black);
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(3.8rem, 11vw, 7.5rem);
+  font-weight: 900;
+  letter-spacing: -0.06em;
+  line-height: 0.88;
+  color: var(--text-black);
+  text-transform: uppercase;
+  margin-bottom: 16px;
+  text-shadow: 4px 4px 0px rgba(0,0,0,0.12);
+}
+
+.brand-tagline {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  font-weight: 700;
+  color: var(--text-black);
+  line-height: 1.25;
+  margin-bottom: 8px;
+}
+
+.brand-desc {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text-dim);
+  max-width: 680px;
+}
+
+/* Nav steps */
+.steps {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.steps a {
+  background: #fff;
+  color: var(--text-black);
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard-sm);
+  padding: 12px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+.steps a:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-hard);
+}
+
+.steps a b {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-sub);
+}
+
+/* Live Status Strip */
+.status {
+  background: #fff;
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard);
+  border-radius: 8px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.status .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--text-black);
+  border: 2px solid var(--bg-yellow);
+  box-shadow: 0 0 0 2px var(--border-black);
+  flex-shrink: 0;
+}
+
+.status.error {
+  background: #FFD2D2;
+}
+
+.status.error .dot {
+  background: #D32F2F;
+}
+
+/* Real-Time Progress Bar Component */
+.progress-panel {
+  background: #000000;
+  color: var(--bg-yellow);
+  border: 3px solid var(--border-black);
+  box-shadow: var(--shadow-hard-lg);
+  border-radius: var(--card-radius);
+  padding: 22px;
+  margin-bottom: 28px;
+  transition: all 0.2s ease;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.progress-phase {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  background: var(--bg-yellow);
+  border-radius: 50%;
+  animation: pulseAnim 1.2s infinite ease-in-out;
+}
+
+@keyframes pulseAnim {
+  0% { transform: scale(0.9); opacity: 0.6; }
+  50% { transform: scale(1.3); opacity: 1; box-shadow: 0 0 8px var(--bg-yellow); }
+  100% { transform: scale(0.9); opacity: 0.6; }
+}
+
+.progress-pct {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--bg-yellow);
+}
+
+.progress-track {
+  background: #222222;
+  border: 2px solid var(--bg-yellow);
+  border-radius: 999px;
+  height: 20px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 14px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--bg-yellow);
+  background-image: linear-gradient(
+    45deg,
+    rgba(0, 0, 0, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(0, 0, 0, 0.15) 50%,
+    rgba(0, 0, 0, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 24px 24px;
+  animation: stripeMove 1s linear infinite;
+  border-radius: 999px;
+  transition: width 0.35s ease;
+}
+
+@keyframes stripeMove {
+  0% { background-position: 0 0; }
+  100% { background-position: 24px 0; }
+}
+
+.progress-action {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  color: #CCCCCC;
+  margin-bottom: 18px;
+}
+
+.progress-steps-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  border-top: 1px solid #333333;
+  padding-top: 14px;
+}
+
+.prog-step {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: #181818;
+  color: #777777;
+  border: 1px solid #333333;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.prog-step.active {
+  background: var(--bg-yellow);
+  color: var(--text-black);
+  border-color: var(--bg-yellow);
+  box-shadow: 0 0 10px rgba(234, 255, 0, 0.4);
+}
+
+.prog-step.done {
+  background: #252525;
+  color: var(--bg-yellow);
+  border-color: #555555;
+}
+
+/* Card Panels */
+.panel {
+  background: var(--bg-yellow-card);
+  border: 3px solid var(--border-black);
+  box-shadow: var(--shadow-hard-lg);
+  border-radius: var(--card-radius);
+  padding: 28px;
+  margin-bottom: 28px;
+}
+
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.number {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 800;
+  background: var(--text-black);
+  color: var(--bg-yellow);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+h2 {
+  font-family: 'Syne', sans-serif;
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-black);
+}
+
+h3 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.hint {
+  font-size: 14px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+/* Forms & Upload Inputs */
+.upload {
+  border: 2px dashed var(--border-black);
+  background: #FAFAFA;
+  border-radius: 8px;
+  padding: 24px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.upload:hover {
+  background: var(--bg-yellow-pale);
+  border-color: var(--text-black);
+}
+
+.upload .icon {
+  font-size: 24px;
+  font-weight: 800;
+}
+
+.upload strong {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+}
+
+.upload small {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
+.upload input[type=file] {
+  display: none;
+}
+
+.upload img {
+  width: 54px;
+  height: 54px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 2px solid var(--border-black);
+}
+
+.field {
+  display: block;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+input:not([type=file]), select, textarea {
+  width: 100%;
+  background: #fff;
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard-sm);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-black);
+  margin-top: 6px;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+input:not([type=file]):focus, select:focus, textarea:focus {
+  background: var(--bg-yellow-pale);
+}
+
+.split {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+details {
+  border: 2px solid var(--border-black);
+  border-radius: 8px;
+  padding: 14px;
+  margin: 16px 0;
+  background: #FAFAFA;
+}
+
+details summary {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+/* Actions & Buttons */
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+button, .button {
+  background: var(--text-black);
+  color: var(--bg-yellow);
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard);
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 14px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.15s ease;
+}
+
+button:hover:not(:disabled), .button:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-hard-lg);
+  background: #111111;
+}
+
+button:active:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: var(--shadow-hard-sm);
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+button.secondary, .button.secondary {
+  background: #fff;
+  color: var(--text-black);
+  border-color: var(--border-black);
+}
+
+button.secondary:hover:not(:disabled) {
+  background: var(--bg-yellow-pale);
+}
+
+/* Viewer & Media */
+.viewer {
+  border: 2px solid var(--border-black);
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000;
+  box-shadow: var(--shadow-hard);
+  margin: 16px 0;
+}
+
+video {
+  width: 100%;
+  display: block;
+  max-height: 480px;
+  background: #000;
+}
+
+.viewer-foot {
+  background: #fff;
+  border-top: 2px solid var(--border-black);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.tabs button {
+  background: #fff;
+  color: var(--text-black);
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard-sm);
+  padding: 8px 16px;
+  font-size: 13px;
+}
+
+.tabs button.active {
+  background: var(--text-black);
+  color: var(--bg-yellow);
+}
+
+.empty {
+  border: 2px dashed var(--border-black);
+  border-radius: 8px;
+  padding: 36px 20px;
+  text-align: center;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  color: var(--text-sub);
+  background: #FAFAFA;
+}
+
+.badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--text-black);
+  color: var(--bg-yellow);
+}
+
+/* Log Console Panel */
+#console-panel {
+  border-left: 8px solid var(--text-black);
+}
+
+#log-box {
+  background: #000000;
+  color: var(--bg-yellow);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  padding: 16px;
+  border-radius: 8px;
+  max-height: 220px;
+  min-height: 90px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  border: 2px solid var(--border-black);
+  box-shadow: inset 0 2px 6px rgba(0,0,0,0.8);
+  margin-top: 12px;
+}
+
+footer {
+  text-align: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-black);
+  margin-top: 40px;
+  padding: 20px 0;
+  border-top: 2px solid var(--border-black);
+}
+
+@media(max-width: 640px) {
+  .brand-title { font-size: 3.2rem; }
+  .steps { grid-template-columns: repeat(2, 1fr); }
+  .split { grid-template-columns: 1fr; }
+  .progress-steps-row { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="top-tag">LOCAL ENGINE // RTX 4070</div>
+  <div class="system-status">OPENFIELD v2.4</div>
+</header>
+
+<div class="hero">
+  <div class="brand-eyebrow">OPEN-SOURCE AI MOTION & COMPOSITING</div>
+  <h1 class="brand-title">OPENFIELD</h1>
+  <div class="brand-tagline">YOUR SCENE. NEW CHARACTERS.</div>
+  <p class="brand-desc">Local Depth-Anything-V2 geometry, SAM 3 GPU silhouette tracking, and background-preserving compositing with +3 vocal pitch conditioning.</p>
+</div>
+
+<nav class="steps" aria-label="Workflow">
+  <a href="#source"><b>01</b>Upload Video</a>
+  <a href="#review"><b>02</b>Review & Masks</a>
+  <a href="#draft"><b>03</b>Generate Draft</a>
+  <a href="#final"><b>04</b>Export Master</a>
+</nav>
+
+<div id="status" class="status" role="status">
+  <span class="dot"></span>
+  <span id="status-text">Ready. Choose your original video to begin processing.</span>
+</div>
+
+<!-- REAL-TIME PROGRESS BAR -->
+<div id="progress-container" class="progress-panel" hidden>
+  <div class="progress-header">
+    <div class="progress-phase">
+      <span class="pulse-dot"></span>
+      <span id="progress-phase-title">PROCESSING VIDEO...</span>
+    </div>
+    <span class="progress-pct" id="progress-percentage-label">0%</span>
+  </div>
+  <div class="progress-track">
+    <div class="progress-fill" id="progress-bar-fill" style="width: 0%;"></div>
+  </div>
+  <div class="progress-action" id="progress-action-text">Initializing local pipeline...</div>
+  <div class="progress-steps-row">
+    <div class="prog-step" id="step-depth">1. Depth Map</div>
+    <div class="prog-step" id="step-sam">2. SAM 3 Masks</div>
+    <div class="prog-step" id="step-comp">3. Composite</div>
+    <div class="prog-step" id="step-audio">4. Audio Pitch (+3)</div>
+  </div>
+</div>
+
+<section class="panel" id="source">
+  <div class="heading">
+    <span class="number">01</span>
+    <h2>Source Video Input</h2>
+  </div>
+  <form id="form">
+    <label class="upload">
+      <span class="icon">↑</span>
+      <span>
+        <strong>Choose original video</strong>
+        <small data-filename>MP4 or MOV · up to 60 seconds</small>
+      </span>
+      <input aria-label="Original video" required type="file" name="video" accept="video/*">
+    </label>
+
+    <label class="field" style="margin-top:20px">
+      Preparation method
+      <select name="mode">
+        <option value="depth" selected>Advanced · Depth-Anything-V2 + SAM 3 (Local GPU)</option>
+        <option value="face_mesh">Fast · Face mesh (no depth or SAM)</option>
+        <option value="depth_mesh">Advanced + Face mesh · Depth + SAM 3 + facial motion</option>
+      </select>
+      <span class="hint">Depth mode runs local Depth-Anything-V2 + SAM 3 GPU tracking to composite depth onto the character while preserving the original background.</span>
+    </label>
+
+    <details>
+      <summary>Advanced settings · prompt & provider</summary>
+      <div class="split">
+        <label class="field">
+          Subject prompt
+          <input name="prompt" value="person" required>
+          <span class="hint">"person" tracks all detected human subjects.</span>
+        </label>
+        <label class="field">
+          Depth provider
+          <select name="provider">
+            <option value="local" selected>Local GPU (RTX 4070 CUDA) · Depth Anything V2</option>
+            <option value="replicate">Replicate · Depth Anything Video</option>
+            <option value="huggingface">Hugging Face · Video Depth Anything</option>
+          </select>
+        </label>
+      </div>
+      <p class="hint">All modes extract audio, isolate vocals, and pitch-shift +3 semitones for speech/lip-sync conditioning.</p>
+    </details>
+
+    <div class="actions">
+      <span class="hint">Includes +3 semitone pitched vocal stem embedded into seedance-input.mp4</span>
+      <button id="go">Prepare Video →</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" id="console-panel">
+  <div class="heading">
+    <span class="number">LOG</span>
+    <h2>Live Execution Console</h2>
+    <button type="button" id="open-folder-btn" class="secondary" style="margin-left:auto;font-size:12px;padding:6px 14px;cursor:pointer;" onclick="openFolder()">📁 Open Output Folder</button>
+  </div>
+  <p class="hint" id="folder-path-display">Files are saved locally to: <code>runs/&lt;job_id&gt;</code></p>
+  <div id="log-box">Ready. Choose your video above to begin local processing.</div>
+</section>
+
+<section class="panel" id="review">
+  <div class="heading">
+    <span class="number">02</span>
+    <h2>Review Prepared Input & Masks</h2>
+  </div>
+  <p class="hint">Inspect the generated SAM 3 mask, Depth Anything composite, and listen to the embedded pitched vocals.</p>
+  <div id="input-empty" class="empty">Your original video, depth map, mask, and composited preview will appear here.</div>
+  <div id="input-ready" hidden>
+    <div class="tabs" id="tabs" role="group" aria-label="Preview selection"></div>
+    <div class="viewer">
+      <video id="input-video" controls playsinline preload="metadata"></video>
+      <div class="viewer-foot">
+        <span id="input-caption" class="hint" style="margin:0"></span>
+        <a id="input-download" download class="button secondary" style="padding:4px 12px;font-size:12px;">Download Video ↓</a>
+      </div>
+    </div>
+    <div style="margin-top:20px;padding:18px;border:2px solid var(--border-black);border-radius:10px;background:#fff;">
+      <h3>Approval Gate · Review Input</h3>
+      <p class="hint">Verify that the character is accurately segmented and the background remains preserved.</p>
+      <p id="mask-review-status" role="status" style="font-family:'JetBrains Mono',monospace;font-weight:700;margin-bottom:12px;">Mask review required.</p>
+      <label class="row hint" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="review-check" style="width:auto;margin:0"> I reviewed the prepared clip; the subject mask and background composite are verified.
+      </label>
+      <div class="row" style="margin-top:14px;display:flex;gap:12px;">
+        <button type="button" id="approve-mask" disabled>Approve Input</button>
+        <button type="button" class="secondary" id="reject-mask">Needs Correction</button>
+      </div>
+    </div>
+    <details>
+      <summary>Audio stem downloads</summary>
+      <div class="download" id="audio-links" style="display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;"></div>
+    </details>
+  </div>
+</section>
+
+<section class="panel" id="draft">
+  <div class="heading">
+    <span class="number">03</span>
+    <h2>Generate Character Draft</h2>
+  </div>
+  <div class="meta" style="display:flex;gap:10px;margin-bottom:16px;">
+    <span class="badge" id="mode-label">Diffusion Video Model</span>
+    <span class="badge" style="background:#fff;color:#000;border:1px solid #000;">Quality · Draft Preview</span>
+  </div>
+  <form id="seedance">
+    <div class="split">
+      <label class="upload">
+        <img id="sirio-img" alt="Character 1 reference" hidden>
+        <span>
+          <strong>Character 1 · Required</strong>
+          <small data-filename>Choose character image/video</small>
+        </span>
+        <input type="file" name="sirio" aria-label="Character 1 reference" accept="image/png,image/jpeg,image/webp,video/mp4,video/quicktime,video/webm">
+      </label>
+      <label class="upload">
+        <img id="tein-img" alt="Character 2 reference" hidden>
+        <span>
+          <strong>Character 2 · Optional</strong>
+          <small data-filename>Choose character image</small>
+        </span>
+        <input type="file" name="tein" aria-label="Character 2 reference" accept="image/png,image/jpeg,image/webp">
+      </label>
+    </div>
+    <label class="field" style="margin-top:22px">
+      Generation prompt
+      <textarea name="prompt" required rows="6">Replace the complete selected subject with the supplied character reference in every frame, including hair, hands, clothing and footwear. Preserve the original background, camera framing, lighting, motion and timing. Match the embedded speech exactly without extra dialogue. Use the embedded vocals in @Video1 for performance and lip synchronization.</textarea>
+    </label>
+    <div class="actions">
+      <span class="hint">Generates a draft preview conditioning on composite.mp4 and pitched vocals.</span>
+      <button id="draft-button" disabled>Create Draft →</button>
+    </div>
+  </form>
+</section>
+
+<section class="panel" id="final">
+  <div class="heading">
+    <span class="number">04</span>
+    <h2>Final Master & Audio Restoration</h2>
+  </div>
+  <p class="hint">The final master render restores the full original master soundtrack (dialogue, music, ambience).</p>
+  <div id="final-empty" class="empty">Your draft and final render will appear here when complete.</div>
+  <div id="final-ready" hidden>
+    <div class="viewer">
+      <video id="final-video" controls playsinline preload="metadata"></video>
+      <div class="viewer-foot">
+        <span class="badge" id="quality-label">DRAFT PREVIEW</span>
+        <a id="final-download" download class="button secondary" style="padding:4px 12px;font-size:12px;">Download Video ↓</a>
+      </div>
+    </div>
+    <div class="actions">
+      <div>
+        <h3 style="margin-bottom:4px">Approve Draft?</h3>
+        <span class="hint">Generate the full 1080p master export.</span>
+      </div>
+      <button id="upgrade" disabled>Approve & Generate 1080p →</button>
+    </div>
+    <div id="upgrade-status" role="status" style="margin-top:12px;font-family:'JetBrains Mono',monospace;font-weight:700;"></div>
+  </div>
+
+  <details id="sent-details" hidden>
+    <summary>View submitted prompt & generation metadata</summary>
+    <p class="hint" id="generation-id"></p>
+    <pre id="sent-prompt" style="background:#000;color:var(--bg-yellow);padding:14px;border-radius:6px;font-family:'JetBrains Mono',monospace;"></pre>
+    <a id="raw-link" class="hint" style="display:inline-block;margin-top:8px;">Download raw result</a>
+  </details>
+
+  <details>
+    <summary>Restore original audio onto an external video</summary>
+    <form id="finish" style="margin-top:16px">
+      <label class="upload">
+        <span class="icon">↑</span>
+        <span>
+          <strong>Choose video</strong>
+          <small data-filename>We will restore the original master soundtrack.</small>
+        </span>
+        <input name="video" aria-label="Result video" type="file" accept="video/*" required>
+      </label>
+      <div class="actions">
+        <button class="secondary">Restore Original Audio</button>
+      </div>
+    </form>
+  </details>
+</section>
+
+<footer>
+  OPENFIELD · LOCAL VIDEO DEPTH & SILHOUETTE COMPOSITING ENGINE
+</footer>
+
+</main>
+
+<script>
+const $ = s => document.querySelector(s);
+
+async function openFolder() {
+  if (!jobId) { alert("Start a job first."); return; }
+  try {
+    await json('/jobs/' + jobId + '/open-folder', { method: 'POST' });
+  } catch(e) {
+    alert("Output folder: runs/" + jobId);
+  }
+}
+
+let jobId = new URLSearchParams(location.search).get('job');
+let saved = {}, maskApproved = false, maskFingerprint = "", selectedPreview = "", busy = false, pollTimer;
+const base = () => '/runs/' + jobId + '/';
+
+function status(t, error = false) {
+  $('#status-text').textContent = t;
+  $('#status').classList.toggle('error', error);
+}
+
+async function exists(file) {
+  return (await fetch(base() + file, { method: 'HEAD', cache: 'no-store' })).ok;
+}
+
+async function json(url, options) {
+  const r = await fetch(url, options);
+  const j = await r.json();
+  if (!r.ok) throw Error(typeof j.detail === 'string' ? j.detail : 'The request could not be completed.');
+  return j;
+}
+
+for (const input of document.querySelectorAll('input[type=file]')) {
+  input.onchange = () => {
+    const f = input.files[0];
+    if (!f) return;
+    input.closest('.upload').querySelector('[data-filename]').textContent = f.name;
+    const img = input.closest('.upload').querySelector('img');
+    if (input.name === 'sirio') $('#mode-label').textContent = f.type.startsWith('video/') ? 'Omni Reference' : 'Edit Reference';
+    if (img && !f.type.startsWith('video/')) {
+      img.src = URL.createObjectURL(f);
+      img.hidden = false;
+    }
+  };
+}
+
+// REAL-TIME PROGRESS CALCULATION & ANIMATION
+function updateProgressBar(job) {
+  const container = $('#progress-container');
+  if (!job) { container.hidden = true; return; }
+
+  const isRunning = job.state === 'running';
+  const isDone = job.state === 'done';
+
+  if (!isRunning && !isDone) {
+    container.hidden = true;
+    return;
+  }
+
+  container.hidden = false;
+  const statusStr = (job.status || '') + ' ' + (job.logs && job.logs.length ? job.logs[job.logs.length - 1] : '');
+  
+  let pct = 5;
+  let phase = "INITIALIZING";
+  let actionText = job.status || "Processing video...";
+
+  // Step indicators
+  const stepDepth = $('#step-depth');
+  const stepSam = $('#step-sam');
+  const stepComp = $('#step-comp');
+  const stepAudio = $('#step-audio');
+
+  [stepDepth, stepSam, stepComp, stepAudio].forEach(s => {
+    s.classList.remove('active', 'done');
+  });
+
+  if (isDone) {
+    pct = 100;
+    phase = "PROCESSING COMPLETE";
+    actionText = "All video, masks, composites & audio stems ready!";
+    [stepDepth, stepSam, stepComp, stepAudio].forEach(s => s.classList.add('done'));
+  } else if (/depth/i.test(statusStr)) {
+    phase = "STAGE 1: DEPTH ESTIMATION";
+    stepDepth.classList.add('active');
+    
+    // Parse frame X/Y (Z%)
+    const pctMatch = statusStr.match(/(\d+)%/);
+    const frameMatch = statusStr.match(/frame\s+(\d+)\/(\d+)/i);
+    if (pctMatch) {
+      pct = Math.round(5 + (parseInt(pctMatch[1]) * 0.25));
+    } else if (frameMatch) {
+      const cur = parseInt(frameMatch[1]), tot = parseInt(frameMatch[2]);
+      pct = Math.round(5 + ((cur / tot) * 25));
+    } else {
+      pct = 15;
+    }
+    actionText = statusStr;
+  } else if (/SAM|mask/i.test(statusStr)) {
+    phase = "STAGE 2: SAM 3 SILHOUETTE TRACKING";
+    stepDepth.classList.add('done');
+    stepSam.classList.add('active');
+
+    const overallMatch = statusStr.match(/Overall:\s*(\d+)\/(\d+)/i) || statusStr.match(/Tracked\s*(\d+)\/(\d+)/i);
+    const chunkMatch = statusStr.match(/Chunk\s*(\d+)\/(\d+)/i);
+    if (overallMatch) {
+      const cur = parseInt(overallMatch[1]), tot = parseInt(overallMatch[2]);
+      pct = Math.round(30 + ((cur / tot) * 50));
+    } else if (chunkMatch) {
+      const cur = parseInt(chunkMatch[1]), tot = parseInt(chunkMatch[2]);
+      pct = Math.round(30 + ((cur / tot) * 50));
+    } else {
+      pct = 45;
+    }
+    actionText = statusStr;
+  } else if (/composit|border|clean/i.test(statusStr)) {
+    phase = "STAGE 3: BACKGROUND COMPOSITING";
+    stepDepth.classList.add('done');
+    stepSam.classList.add('done');
+    stepComp.classList.add('active');
+    pct = 85;
+    actionText = "Compositing character depth map strictly over original background...";
+  } else if (/audio|vocal|pitch/i.test(statusStr)) {
+    phase = "STAGE 4: VOCAL ISOLATION & PITCH (+3)";
+    stepDepth.classList.add('done');
+    stepSam.classList.add('done');
+    stepComp.classList.add('done');
+    stepAudio.classList.add('active');
+    pct = 95;
+    actionText = "Pitching isolated vocals +3 semitones and muxing into seedance-input.mp4...";
+  } else {
+    pct = 20;
+    actionText = statusStr;
+  }
+
+  pct = Math.min(Math.max(pct, 0), 100);
+  $('#progress-phase-title').textContent = phase;
+  $('#progress-percentage-label').textContent = pct + '%';
+  $('#progress-bar-fill').style.width = pct + '%';
+  $('#progress-action-text').textContent = actionText;
+}
+
+async function refresh() {
+  if (!jobId) return;
+  const items = [
+    ['Prepared Input', 'seedance-input.mp4', 'Composited depth subject over original background + pitched vocals (+3)'],
+    ['Composite', 'composite.mp4', 'Depth subject composited over original background'],
+    ['Original', 'original.mp4', 'Original source video'],
+    ['Depth Map', 'depth.mp4', 'Depth-Anything-V2 colored depth geometry'],
+    ['Mask Video', 'mask.mp4', 'SAM 3 character silhouette mask']
+  ];
+  const present = await Promise.all(items.map(x => exists(x[1])));
+  $('#tabs').replaceChildren();
+  items.forEach((x, i) => {
+    if (!present[i]) return;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = x[0];
+    b.dataset.file = x[1];
+    b.onclick = () => {
+      selectedPreview = x[1];
+      document.querySelectorAll('#tabs button').forEach(t => t.classList.remove('active'));
+      b.classList.add('active');
+      $('#input-video').src = base() + x[1];
+      $('#input-caption').textContent = x[2];
+      $('#input-download').href = base() + x[1];
+    };
+    $('#tabs').append(b);
+  });
+
+  if (present.some(Boolean)) {
+    $('#input-empty').hidden = true;
+    $('#input-ready').hidden = false;
+    ([...document.querySelectorAll('#tabs button')].find(b => b.dataset.file === selectedPreview) || $('#tabs button')).click();
+  }
+
+  const review = await json('/jobs/' + jobId + '/mask-review');
+  maskApproved = review.approved;
+  maskFingerprint = review.fingerprint || '';
+  $('#mask-review-status').textContent = review.note || review.status;
+  $('#review-check').checked = maskApproved;
+  $('#approve-mask').disabled = true;
+  $('#draft-button').disabled = !present[0] || busy || !maskApproved;
+
+  $('#audio-links').replaceChildren();
+  for (const [file, title] of [['vocals.wav', 'Isolated vocals'], ['vocals-plus3.wav', 'Vocals +3'], ['music.wav', 'Music stem']]) {
+    if (await exists(file)) {
+      const a = document.createElement('a');
+      a.href = base() + file;
+      a.download = file;
+      a.className = 'button secondary';
+      a.style.fontSize = '12px';
+      a.style.padding = '4px 12px';
+      a.textContent = title + ' ↓';
+      $('#audio-links').append(a);
+    }
+  }
+
+  for (const name of ['sirio', 'tein']) {
+    if (saved[name]) continue;
+    for (const ext of ['png', 'jpg', 'jpeg', 'webp', 'mp4', 'mov', 'webm']) {
+      const file = name + '-reference.' + ext;
+      if (await exists(file)) {
+        saved[name] = file;
+        const img = $('#' + name + '-img');
+        if (!['mp4', 'mov', 'webm'].includes(ext)) {
+          img.src = base() + file;
+          img.hidden = false;
+        }
+        img.closest('.upload').querySelector('small').textContent = 'Saved reference · click to replace';
+        break;
+      }
+    }
+  }
+
+  if (await exists('generation.json')) {
+    const g = await json(base() + 'generation.json');
+    $('#mode-label').textContent = g.mode === 'multi_reference' ? 'Omni Reference' : 'Edit Reference';
+    $('#sent-details').hidden = false;
+    $('#generation-id').textContent = 'Request ID: ' + g.request_id;
+    $('#sent-prompt').textContent = g.prompt;
+    if (!$('#seedance textarea').dataset.loaded) {
+      $('#seedance textarea').value = g.prompt;
+      $('#seedance textarea').dataset.loaded = 'true';
+    }
+    $('#raw-link').href = base() + 'seedance-result.mp4';
+  }
+
+  const hd = await exists('hd/final-preview.mp4'), draft = await exists('final-preview.mp4');
+  if (draft || hd) {
+    const url = base() + (hd ? 'hd/' : '') + 'final-preview.mp4';
+    $('#final-empty').hidden = true;
+    $('#final-ready').hidden = false;
+    if ($('#final-video').getAttribute('src') !== url) $('#final-video').src = url;
+    $('#final-download').href = url;
+    $('#quality-label').textContent = hd ? '1080P · MASTER AUDIO' : 'DRAFT · MASTER AUDIO';
+    $('#final-download').textContent = hd ? 'Download 1080p ↓' : 'Download Draft ↓';
+    $('#upgrade').disabled = busy || hd;
+  }
+}
+
+async function watch() {
+  clearTimeout(pollTimer);
+  try {
+    const j = await json('/jobs/' + jobId);
+    busy = j.state === 'running';
+    status(j.status, j.state === 'error');
+    updateProgressBar(j);
+
+    if (j.logs && j.logs.length) {
+      const b = $('#log-box');
+      b.textContent = j.logs.join('\n');
+      b.scrollTop = b.scrollHeight;
+    }
+    if (j.folder_path) {
+      $('#folder-path-display').innerHTML = 'Files saved to: <strong style="color:var(--bg-yellow);user-select:all;">' + j.folder_path + '</strong>';
+    }
+    $('#go').disabled = busy;
+    $('#draft-button').disabled = busy || $('#input-ready').hidden || !maskApproved;
+    
+    if (busy) {
+      $('#upgrade').disabled = true;
+      pollTimer = setTimeout(watch, 1500);
+    } else {
+      await refresh();
+    }
+  } catch(e) {
+    status(e.message, true);
+    if ($('#log-box')) $('#log-box').textContent += '\n[ERROR] ' + e.message;
+  }
+}
+
+$('#form').onsubmit = async e => {
+  e.preventDefault();
+  $('#go').disabled = true;
+  try {
+    status('Uploading video and starting local processing...');
+    const j = await json('/jobs', { method: 'POST', body: new FormData(e.target) });
+    location.href = '/?job=' + j.id;
+  } catch(e) {
+    status(e.message, true);
+    $('#go').disabled = false;
+  }
+};
+
+$('#seedance').onsubmit = async e => {
+  e.preventDefault();
+  if (!jobId) return;
+  if (!maskApproved) { status('Review and approve the mask first.', true); return; }
+  const button = $('#draft-button');
+  button.disabled = true;
+  try {
+    const data = new FormData(e.target);
+    for (const name of ['sirio', 'tein']) {
+      if (!e.target.elements[name].files.length) {
+        if (!saved[name]) {
+          if (name === 'tein') { data.delete(name); continue; }
+          throw Error('Choose Character 1’s reference image first.');
+        }
+        data.set(name, new File([await (await fetch(base() + saved[name])).blob()], saved[name]));
+      }
+    }
+    status('Uploading references and creating draft...');
+    await json('/jobs/' + jobId + '/seedance', { method: 'POST', body: data });
+    await watch();
+  } catch(e) {
+    status(e.message, true);
+    button.disabled = false;
+  }
+};
+
+$('#finish').onsubmit = async e => {
+  e.preventDefault();
+  if (!jobId) { status('Prepare your original video first.', true); return; }
+  const b = e.target.querySelector('button');
+  b.disabled = true;
+  try {
+    status('Restoring original soundtrack...');
+    await json('/jobs/' + jobId + '/finish', { method: 'POST', body: new FormData(e.target) });
+    await refresh();
+    status('Preview ready with original soundtrack.');
+  } catch(e) {
+    status(e.message, true);
+  } finally {
+    b.disabled = false;
+  }
+};
+
+$('#upgrade').onclick = async () => {
+  $('#upgrade').disabled = true;
+  try {
+    const j = await json('/jobs/' + jobId + '/hd', { method: 'POST' });
+    $('#upgrade-status').textContent = 'Generating 1080p master export...';
+    pollHD();
+  } catch(e) {
+    $('#upgrade-status').textContent = e.message;
+    $('#upgrade').disabled = false;
+  }
+};
+
+async function pollHD() {
+  try {
+    const j = await json('/jobs/' + jobId + '/hd');
+    $('#upgrade-status').textContent = j.status;
+    if (j.state === 'running') setTimeout(pollHD, 3000);
+    else {
+      await refresh();
+      if (j.state === 'error') $('#upgrade').disabled = false;
+    }
+  } catch(e) {
+    $('#upgrade-status').textContent = e.message;
+  }
+}
+
+$('#review-check').onchange = () => {
+  $('#approve-mask').disabled = !$('#review-check').checked;
+};
+
+async function saveReview(approved) {
+  try {
+    const data = new FormData();
+    data.set('approved', approved);
+    data.set('fingerprint', maskFingerprint);
+    data.set('note', approved ? 'Prepared input approved after visual review.' : 'Mask needs correction.');
+    await json('/jobs/' + jobId + '/mask-review', { method: 'POST', body: data });
+    await refresh();
+  } catch(e) {
+    status(e.message, true);
+  }
+}
+
+$('#approve-mask').onclick = () => saveReview(true);
+$('#reject-mask').onclick = () => saveReview(false);
+
+if (jobId) {
+  refresh().then(watch).catch(e => status(e.message, true));
+  fetch('/jobs/' + jobId + '/hd').then(r => r.ok ? r.json() : null).then(j => {
+    if (j && j.state === 'running') {
+      $('#upgrade').disabled = true;
+      pollHD();
+    }
+  });
+}
+</script>
+</body>
+</html>
