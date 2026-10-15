@@ -13,7 +13,7 @@
   --bg-yellow-pale: #F4FF59;
   --bg-yellow-card: #FFFFFF;
   --text-black: #000000;
-  --text-dim: #333333;
+  --text-dim: #222222;
   --text-sub: #555555;
   --border-black: #000000;
   --shadow-hard: 4px 4px 0px #000000;
@@ -50,7 +50,7 @@ body::before {
 }
 
 main {
-  max-width: 960px;
+  max-width: 980px;
   margin: 0 auto;
 }
 
@@ -100,8 +100,12 @@ header {
   box-shadow: var(--shadow-hard-sm);
 }
 
-/* Hero Branding with stylized OpenField */
-.hero {
+/* Hero Branding with stylized OpenField & Creative Mascot Showcase */
+.hero-wrapper {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 28px;
+  align-items: center;
   margin-bottom: 36px;
 }
 
@@ -120,7 +124,7 @@ header {
 
 .brand-title {
   font-family: 'Syne', sans-serif;
-  font-size: clamp(3.8rem, 11vw, 7.5rem);
+  font-size: clamp(3.6rem, 9vw, 6.4rem);
   font-weight: 900;
   letter-spacing: -0.06em;
   line-height: 0.88;
@@ -132,7 +136,7 @@ header {
 
 .brand-tagline {
   font-family: 'Space Grotesk', sans-serif;
-  font-size: clamp(1.2rem, 3vw, 1.7rem);
+  font-size: clamp(1.2rem, 2.5vw, 1.6rem);
   font-weight: 700;
   color: var(--text-black);
   line-height: 1.25;
@@ -143,7 +147,93 @@ header {
   font-size: 15px;
   font-weight: 500;
   color: var(--text-dim);
-  max-width: 680px;
+  max-width: 620px;
+}
+
+/* Mascot Showcase Card */
+.hero-mascot-card {
+  background: #000000;
+  border: 3px solid var(--border-black);
+  box-shadow: var(--shadow-hard-lg);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hero-mascot-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 9px 9px 0px #000000;
+}
+
+.mascot-img-wrap {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 12px;
+  background: radial-gradient(circle, #1a1a1a 0%, #000000 80%);
+}
+
+.mascot-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  transition: transform 0.3s ease;
+}
+
+.hero-mascot-card:hover .mascot-img {
+  transform: scale(1.05);
+}
+
+.mascot-tag {
+  margin-top: 12px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--bg-yellow);
+  background: #1a1a1a;
+  border: 1px solid var(--bg-yellow);
+  padding: 4px 10px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.mascot-bubble {
+  margin-top: 10px;
+  background: var(--bg-yellow);
+  color: #000;
+  border: 2px solid #000;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  box-shadow: var(--shadow-hard-sm);
+  position: relative;
+}
+
+.mascot-bubble::before {
+  content: "";
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 0 6px 6px 6px;
+  border-style: solid;
+  border-color: transparent transparent #000 transparent;
 }
 
 /* Nav steps */
@@ -360,6 +450,29 @@ header {
   margin-bottom: 16px;
 }
 
+.heading-mascot-badge {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #000;
+  color: var(--bg-yellow);
+  border: 2px solid #000;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.heading-mascot-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--bg-yellow);
+}
+
 .number {
   font-family: 'JetBrains Mono', monospace;
   font-size: 13px;
@@ -446,7 +559,7 @@ h3 {
   margin-bottom: 6px;
 }
 
-input:not([type=file]), select, textarea {
+input:not([type=file]):not([type=checkbox]), select, textarea {
   width: 100%;
   background: #fff;
   border: 2px solid var(--border-black);
@@ -461,7 +574,7 @@ input:not([type=file]), select, textarea {
   outline: none;
 }
 
-input:not([type=file]):focus, select:focus, textarea:focus {
+input:not([type=file]):not([type=checkbox]):focus, select:focus, textarea:focus {
   background: var(--bg-yellow-pale);
 }
 
@@ -591,15 +704,46 @@ video {
   color: var(--bg-yellow);
 }
 
-.empty {
-  border: 2px dashed var(--border-black);
-  border-radius: 8px;
-  padding: 36px 20px;
-  text-align: center;
-  font-family: 'Space Grotesk', sans-serif;
-  font-weight: 600;
-  color: var(--text-sub);
+/* CREATIVE MASCOT EMPTY STATES */
+.mascot-empty-state {
+  border: 3px dashed var(--border-black);
+  border-radius: 12px;
+  padding: 32px 24px;
+  display: flex;
+  align-items: center;
+  gap: 24px;
   background: #FAFAFA;
+}
+
+.mascot-empty-avatar {
+  width: 90px;
+  height: 90px;
+  border-radius: 14px;
+  background: #000;
+  border: 2px solid var(--border-black);
+  box-shadow: var(--shadow-hard-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.mascot-empty-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.mascot-empty-text h4 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 17px;
+  font-weight: 800;
+  margin-bottom: 6px;
+  color: var(--text-black);
+}
+
+.mascot-empty-text p {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.45;
 }
 
 .badge {
@@ -634,6 +778,190 @@ video {
   margin-top: 12px;
 }
 
+/* MODEL CONFIGURATION & MANDATORY RUNTIME WARNING BOX */
+.model-config-panel {
+  background: #F9FAFB;
+  border: 2px solid var(--border-black);
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+.model-config-title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.key-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.key-input-wrapper input {
+  padding-right: 80px;
+  font-family: 'JetBrains Mono', monospace;
+  letter-spacing: 0.05em;
+}
+
+.key-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #eee;
+  color: #000;
+  border: 1px solid #000;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  box-shadow: none;
+  cursor: pointer;
+  margin-top: -4px;
+}
+
+.key-toggle-btn:hover {
+  background: var(--bg-yellow);
+  transform: translateY(-50%);
+  box-shadow: none;
+}
+
+/* MANDATORY RUNTIME WARNING BANNER */
+.runtime-warning-banner {
+  background: #000000;
+  color: var(--bg-yellow);
+  border: 3px solid var(--border-black);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin: 18px 0 22px;
+  box-shadow: var(--shadow-hard);
+  position: relative;
+  overflow: hidden;
+}
+
+.runtime-warning-banner::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: repeating-linear-gradient(
+    45deg,
+    #EAFF00,
+    #EAFF00 10px,
+    #000000 10px,
+    #000000 20px
+  );
+}
+
+.warning-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.warning-icon {
+  font-size: 20px;
+}
+
+.warning-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: var(--bg-yellow);
+  color: #000;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.warning-main {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #FFFFFF;
+  margin-bottom: 6px;
+}
+
+.warning-main strong {
+  color: var(--bg-yellow);
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+
+.warning-detail {
+  font-size: 13px;
+  color: #BBBBBB;
+  line-height: 1.4;
+}
+
+.warning-detail code {
+  color: var(--bg-yellow);
+  background: #222;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* FLOATING MASCOT WIDGET */
+.mascot-floating-widget {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #000000;
+  border: 3px solid #000000;
+  box-shadow: var(--shadow-hard-lg);
+  border-radius: 999px;
+  padding: 6px 14px 6px 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.mascot-floating-widget:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0px #000000;
+}
+
+.mascot-floating-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--bg-yellow);
+}
+
+.mascot-floating-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.mascot-floating-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--bg-yellow);
+  letter-spacing: -0.02em;
+}
+
+.mascot-floating-desc {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: #AAA;
+}
+
 footer {
   text-align: center;
   font-family: 'JetBrains Mono', monospace;
@@ -645,11 +973,14 @@ footer {
   border-top: 2px solid var(--border-black);
 }
 
-@media(max-width: 640px) {
+@media(max-width: 768px) {
+  .hero-wrapper { grid-template-columns: 1fr; }
+  .hero-mascot-card { max-width: 320px; margin: 0 auto; }
   .brand-title { font-size: 3.2rem; }
   .steps { grid-template-columns: repeat(2, 1fr); }
   .split { grid-template-columns: 1fr; }
   .progress-steps-row { grid-template-columns: repeat(2, 1fr); }
+  .mascot-floating-widget { display: none; }
 }
 </style>
 </head>
@@ -657,15 +988,30 @@ footer {
 <main>
 
 <header>
-  <div class="top-tag">LOCAL ENGINE // RTX 4070</div>
-  <div class="system-status">OPENFIELD v2.4</div>
+  <div class="top-tag">LOCAL ENGINE // RTX 4070 CUDA</div>
+  <div class="system-status">OPENFIELD v2.5</div>
 </header>
 
-<div class="hero">
-  <div class="brand-eyebrow">OPEN-SOURCE AI MOTION & COMPOSITING</div>
-  <h1 class="brand-title">OPENFIELD</h1>
-  <div class="brand-tagline">YOUR SCENE. NEW CHARACTERS.</div>
-  <p class="brand-desc">Local Depth-Anything-V2 geometry, SAM 3 GPU silhouette tracking, and background-preserving compositing with +3 vocal pitch conditioning.</p>
+<!-- HERO WITH OPENFIELD BRANDING & CREATIVE MASCOT SHOWCASE -->
+<div class="hero-wrapper">
+  <div class="hero-content">
+    <div class="brand-eyebrow">OPEN-SOURCE AI MOTION & COMPOSITING</div>
+    <h1 class="brand-title">OPENFIELD</h1>
+    <div class="brand-tagline">YOUR SCENE. NEW CHARACTERS.</div>
+    <p class="brand-desc">Local Depth-Anything-V2 geometry, SAM 3 GPU silhouette tracking, and background-preserving compositing with +3 vocal pitch conditioning.</p>
+  </div>
+  
+  <div class="hero-mascot-card">
+    <div class="mascot-img-wrap">
+      <img src="/static/mascot.png" alt="OpenField Engine Mascot" class="mascot-img">
+    </div>
+    <div class="mascot-tag">
+      <span class="pulse-dot"></span> AGENT // OPENFIELD ENGINE
+    </div>
+    <div class="mascot-bubble">
+      "Local Depth & SAM 3 locked. Plug in your video & bring your model key!"
+    </div>
+  </div>
 </div>
 
 <nav class="steps" aria-label="Workflow">
@@ -705,6 +1051,10 @@ footer {
   <div class="heading">
     <span class="number">01</span>
     <h2>Source Video Input</h2>
+    <div class="heading-mascot-badge">
+      <img src="/static/mascot.png" class="heading-mascot-thumb" alt="Mascot thumb">
+      STEP 01
+    </div>
   </div>
   <form id="form">
     <label class="upload">
@@ -767,9 +1117,23 @@ footer {
   <div class="heading">
     <span class="number">02</span>
     <h2>Review Prepared Input & Masks</h2>
+    <div class="heading-mascot-badge">
+      <img src="/static/mascot.png" class="heading-mascot-thumb" alt="Mascot thumb">
+      STEP 02
+    </div>
   </div>
   <p class="hint">Inspect the generated SAM 3 mask, Depth Anything composite, and listen to the embedded pitched vocals.</p>
-  <div id="input-empty" class="empty">Your original video, depth map, mask, and composited preview will appear here.</div>
+  
+  <div id="input-empty" class="mascot-empty-state">
+    <div class="mascot-empty-avatar">
+      <img src="/static/mascot.png" alt="Mascot avatar">
+    </div>
+    <div class="mascot-empty-text">
+      <h4>Awaiting Source Video & Depth Extraction</h4>
+      <p>Upload a video in Section 01 above. The local RTX engine will extract SAM 3 silhouettes, Depth-Anything-V2 geometry, and pitch-shift vocals +3 semitones. Your previews will appear here.</p>
+    </div>
+  </div>
+
   <div id="input-ready" hidden>
     <div class="tabs" id="tabs" role="group" aria-label="Preview selection"></div>
     <div class="viewer">
@@ -802,11 +1166,61 @@ footer {
   <div class="heading">
     <span class="number">03</span>
     <h2>Generate Character Draft</h2>
+    <div class="heading-mascot-badge">
+      <img src="/static/mascot.png" class="heading-mascot-thumb" alt="Mascot thumb">
+      STEP 03
+    </div>
   </div>
+  
   <div class="meta" style="display:flex;gap:10px;margin-bottom:16px;">
-    <span class="badge" id="mode-label">Diffusion Video Model</span>
-    <span class="badge" style="background:#fff;color:#000;border:1px solid #000;">Quality · Draft Preview</span>
+    <span class="badge" id="mode-label">Image-to-Video Diffusion</span>
+    <span class="badge" style="background:#fff;color:#000;border:1px solid #000;">Conditioned on Depth & Vocals</span>
   </div>
+
+  <!-- IMAGE-TO-VIDEO MODEL API CONFIGURATION PANEL -->
+  <div class="model-config-panel">
+    <div class="model-config-title">
+      <span>⚡ IMAGE-TO-VIDEO MODEL API CONFIGURATION</span>
+    </div>
+    
+    <div class="split">
+      <label class="field">
+        Target Video Model Provider
+        <select id="model-provider-select">
+          <option value="wan2.1">Wan 2.1 (Local / Self-Hosted)</option>
+          <option value="kling">Kling AI (v1.5 / v2.0)</option>
+          <option value="seedance" selected>Seedance 2.5 / Higgsfield</option>
+          <option value="runway">Runway Gen-3 Alpha</option>
+          <option value="luma">Luma Ray-2</option>
+          <option value="fal">Fal.ai Video Diffusion</option>
+          <option value="custom">Custom HTTP / Webhook Endpoint</option>
+        </select>
+      </label>
+
+      <label class="field">
+        Model API Key / Bearer Token
+        <div class="key-input-wrapper">
+          <input type="password" id="model-api-key-input" placeholder="sk-..." autocomplete="off">
+          <button type="button" class="key-toggle-btn" id="key-toggle-btn">SHOW</button>
+        </div>
+      </label>
+    </div>
+
+    <!-- MANDATORY USER RUNTIME & BILLING WARNING -->
+    <div class="runtime-warning-banner">
+      <div class="warning-title-row">
+        <span class="warning-icon">⚠️</span>
+        <span class="warning-badge">MANDATORY NOTICE // RUNTIME RESPONSIBILITY</span>
+      </div>
+      <p class="warning-main">
+        <strong>WARNING: You are responsible for your own video runtimes and API usage costs. We do not cut or trim video length to fit model limits.</strong>
+      </p>
+      <p class="warning-detail">
+        OpenField exports your full unclipped motion clip (<code>seedance-input.mp4</code>) with all source frames intact. Please verify that your chosen model provider tier supports your clip's complete duration before initiating draft synthesis.
+      </p>
+    </div>
+  </div>
+
   <form id="seedance">
     <div class="split">
       <label class="upload">
@@ -826,12 +1240,14 @@ footer {
         <input type="file" name="tein" aria-label="Character 2 reference" accept="image/png,image/jpeg,image/webp">
       </label>
     </div>
+    
     <label class="field" style="margin-top:22px">
       Generation prompt
       <textarea name="prompt" required rows="6">Replace the complete selected subject with the supplied character reference in every frame, including hair, hands, clothing and footwear. Preserve the original background, camera framing, lighting, motion and timing. Match the embedded speech exactly without extra dialogue. Use the embedded vocals in @Video1 for performance and lip synchronization.</textarea>
     </label>
+    
     <div class="actions">
-      <span class="hint">Generates a draft preview conditioning on composite.mp4 and pitched vocals.</span>
+      <span class="hint">Passes full composite.mp4 with +3 pitched vocal stem into chosen model.</span>
       <button id="draft-button" disabled>Create Draft →</button>
     </div>
   </form>
@@ -841,9 +1257,23 @@ footer {
   <div class="heading">
     <span class="number">04</span>
     <h2>Final Master & Audio Restoration</h2>
+    <div class="heading-mascot-badge">
+      <img src="/static/mascot.png" class="heading-mascot-thumb" alt="Mascot thumb">
+      STEP 04
+    </div>
   </div>
   <p class="hint">The final master render restores the full original master soundtrack (dialogue, music, ambience).</p>
-  <div id="final-empty" class="empty">Your draft and final render will appear here when complete.</div>
+  
+  <div id="final-empty" class="mascot-empty-state">
+    <div class="mascot-empty-avatar">
+      <img src="/static/mascot.png" alt="Mascot avatar">
+    </div>
+    <div class="mascot-empty-text">
+      <h4>Awaiting Character Draft Synthesis</h4>
+      <p>Submit your character draft in Section 03 above. Once generated, your draft preview and 1080p master export with restored original soundtrack will appear here.</p>
+    </div>
+  </div>
+
   <div id="final-ready" hidden>
     <div class="viewer">
       <video id="final-video" controls playsinline preload="metadata"></video>
@@ -887,6 +1317,15 @@ footer {
   </details>
 </section>
 
+<!-- FLOATING COMPANION WIDGET -->
+<div class="mascot-floating-widget" onclick="document.querySelector('#status').scrollIntoView({behavior:'smooth'})" title="OpenField Companion Status">
+  <img src="/static/mascot.png" class="mascot-floating-avatar" alt="OpenField Engine">
+  <div class="mascot-floating-text">
+    <span class="mascot-floating-title">OPENFIELD ENGINE</span>
+    <span class="mascot-floating-desc">LOCAL CUDA READY</span>
+  </div>
+</div>
+
 <footer>
   OPENFIELD · LOCAL VIDEO DEPTH & SILHOUETTE COMPOSITING ENGINE
 </footer>
@@ -895,6 +1334,39 @@ footer {
 
 <script>
 const $ = s => document.querySelector(s);
+
+// Persist and load API key
+const apiKeyInput = $('#model-api-key-input');
+const providerSelect = $('#model-provider-select');
+const keyToggleBtn = $('#key-toggle-btn');
+
+if (apiKeyInput) {
+  const savedKey = localStorage.getItem('openfield_model_api_key') || '';
+  apiKeyInput.value = savedKey;
+  apiKeyInput.addEventListener('input', () => {
+    localStorage.setItem('openfield_model_api_key', apiKeyInput.value.trim());
+  });
+}
+
+if (providerSelect) {
+  const savedProvider = localStorage.getItem('openfield_model_provider') || 'seedance';
+  providerSelect.value = savedProvider;
+  providerSelect.addEventListener('change', () => {
+    localStorage.setItem('openfield_model_provider', providerSelect.value);
+  });
+}
+
+if (keyToggleBtn && apiKeyInput) {
+  keyToggleBtn.addEventListener('click', () => {
+    if (apiKeyInput.type === 'password') {
+      apiKeyInput.type = 'text';
+      keyToggleBtn.textContent = 'HIDE';
+    } else {
+      apiKeyInput.type = 'password';
+      keyToggleBtn.textContent = 'SHOW';
+    }
+  });
+}
 
 async function openFolder() {
   if (!jobId) { alert("Start a job first."); return; }
@@ -978,7 +1450,6 @@ function updateProgressBar(job) {
     phase = "STAGE 1: DEPTH ESTIMATION";
     stepDepth.classList.add('active');
     
-    // Parse frame X/Y (Z%)
     const pctMatch = statusStr.match(/(\d+)%/);
     const frameMatch = statusStr.match(/frame\s+(\d+)\/(\d+)/i);
     if (pctMatch) {
@@ -1111,7 +1582,7 @@ async function refresh() {
     const g = await json(base() + 'generation.json');
     $('#mode-label').textContent = g.mode === 'multi_reference' ? 'Omni Reference' : 'Edit Reference';
     $('#sent-details').hidden = false;
-    $('#generation-id').textContent = 'Request ID: ' + g.request_id;
+    $('#generation-id').textContent = 'Job Request · ' + g.request_id;
     $('#sent-prompt').textContent = g.prompt;
     if (!$('#seedance textarea').dataset.loaded) {
       $('#seedance textarea').value = g.prompt;
@@ -1127,8 +1598,8 @@ async function refresh() {
     $('#final-ready').hidden = false;
     if ($('#final-video').getAttribute('src') !== url) $('#final-video').src = url;
     $('#final-download').href = url;
-    $('#quality-label').textContent = hd ? '1080P · MASTER AUDIO' : 'DRAFT · MASTER AUDIO';
-    $('#final-download').textContent = hd ? 'Download 1080p ↓' : 'Download Draft ↓';
+    $('#quality-label').textContent = hd ? '1080P · ORIGINAL AUDIO RESTORED' : 'DRAFT · ORIGINAL AUDIO RESTORED';
+    $('#final-download').textContent = hd ? 'Download 1080p ↓' : 'Download draft ↓';
     $('#upgrade').disabled = busy || hd;
   }
 }
@@ -1139,6 +1610,8 @@ async function watch() {
     const j = await json('/jobs/' + jobId);
     busy = j.state === 'running';
     status(j.status, j.state === 'error');
+    
+    // Update live dynamic progress bar
     updateProgressBar(j);
 
     if (j.logs && j.logs.length) {
@@ -1147,14 +1620,13 @@ async function watch() {
       b.scrollTop = b.scrollHeight;
     }
     if (j.folder_path) {
-      $('#folder-path-display').innerHTML = 'Files saved to: <strong style="color:var(--bg-yellow);user-select:all;">' + j.folder_path + '</strong>';
+      $('#folder-path-display').innerHTML = 'Files are saved to: <strong style="color:#000000;background:#EAFF00;padding:2px 6px;border-radius:4px;user-select:all;">' + j.folder_path + '</strong>';
     }
     $('#go').disabled = busy;
     $('#draft-button').disabled = busy || $('#input-ready').hidden || !maskApproved;
-    
     if (busy) {
       $('#upgrade').disabled = true;
-      pollTimer = setTimeout(watch, 1500);
+      pollTimer = setTimeout(watch, 2000);
     } else {
       await refresh();
     }
@@ -1168,7 +1640,7 @@ $('#form').onsubmit = async e => {
   e.preventDefault();
   $('#go').disabled = true;
   try {
-    status('Uploading video and starting local processing...');
+    status('Uploading source video and initializing local GPU pipeline…');
     const j = await json('/jobs', { method: 'POST', body: new FormData(e.target) });
     location.href = '/?job=' + j.id;
   } catch(e) {
@@ -1180,21 +1652,31 @@ $('#form').onsubmit = async e => {
 $('#seedance').onsubmit = async e => {
   e.preventDefault();
   if (!jobId) return;
-  if (!maskApproved) { status('Review and approve the mask first.', true); return; }
+  if (!maskApproved) {
+    status('Please review and approve the mask before submitting draft.', true);
+    return;
+  }
   const button = $('#draft-button');
   button.disabled = true;
   try {
     const data = new FormData(e.target);
+    
+    // Attach API key from model settings
+    const currentApiKey = $('#model-api-key-input') ? $('#model-api-key-input').value.trim() : '';
+    if (currentApiKey) {
+      data.set('api_key', currentApiKey);
+    }
+
     for (const name of ['sirio', 'tein']) {
       if (!e.target.elements[name].files.length) {
         if (!saved[name]) {
           if (name === 'tein') { data.delete(name); continue; }
-          throw Error('Choose Character 1’s reference image first.');
+          throw Error('Choose Character 1 reference first.');
         }
         data.set(name, new File([await (await fetch(base() + saved[name])).blob()], saved[name]));
       }
     }
-    status('Uploading references and creating draft...');
+    status('Uploading references and submitting draft conditioning…');
     await json('/jobs/' + jobId + '/seedance', { method: 'POST', body: data });
     await watch();
   } catch(e) {
@@ -1209,10 +1691,10 @@ $('#finish').onsubmit = async e => {
   const b = e.target.querySelector('button');
   b.disabled = true;
   try {
-    status('Restoring original soundtrack...');
+    status('Restoring original soundtrack onto video…');
     await json('/jobs/' + jobId + '/finish', { method: 'POST', body: new FormData(e.target) });
     await refresh();
-    status('Preview ready with original soundtrack.');
+    status('Master render ready with full original audio restored.');
   } catch(e) {
     status(e.message, true);
   } finally {
@@ -1224,7 +1706,7 @@ $('#upgrade').onclick = async () => {
   $('#upgrade').disabled = true;
   try {
     const j = await json('/jobs/' + jobId + '/hd', { method: 'POST' });
-    $('#upgrade-status').textContent = 'Generating 1080p master export...';
+    $('#upgrade-status').textContent = 'Generating 1080p master export…';
     pollHD();
   } catch(e) {
     $('#upgrade-status').textContent = e.message;
@@ -1236,8 +1718,9 @@ async function pollHD() {
   try {
     const j = await json('/jobs/' + jobId + '/hd');
     $('#upgrade-status').textContent = j.status;
-    if (j.state === 'running') setTimeout(pollHD, 3000);
-    else {
+    if (j.state === 'running') {
+      setTimeout(pollHD, 4000);
+    } else {
       await refresh();
       if (j.state === 'error') $('#upgrade').disabled = false;
     }
@@ -1255,7 +1738,7 @@ async function saveReview(approved) {
     const data = new FormData();
     data.set('approved', approved);
     data.set('fingerprint', maskFingerprint);
-    data.set('note', approved ? 'Prepared input approved after visual review.' : 'Mask needs correction.');
+    data.set('note', approved ? 'Prepared input approved after visual review.' : 'Mask needs correction. Draft submission is blocked.');
     await json('/jobs/' + jobId + '/mask-review', { method: 'POST', body: data });
     await refresh();
   } catch(e) {

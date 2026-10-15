@@ -102,12 +102,14 @@ def open_folder(ident:str):
     return {'folder_path': win_path}
 
 @app.post('/jobs/{ident}/seedance')
-def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:UploadFile|None=File(None)):
+def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:UploadFile|None=File(None),api_key:str|None=Form(None)):
     if len(ident)!=32 or not all(c in '0123456789abcdef' for c in ident):raise HTTPException(404)
     folder=RUNS/ident
+    if api_key and api_key.strip():
+        os.environ['ENHANCOR_API_KEY'] = api_key.strip()
     key = os.getenv('ENHANCOR_API_KEY', '').strip()
     if not key or any(x in key.lower() for x in ['your_key','your_api','replace_me','placeholder']):
-        raise HTTPException(400, "Enhancor API key is not configured. Since you are using Google Pro / Flow, download the 'Prepared input' video above, generate in Flow, and use 'Restore original audio' below!")
+        raise HTTPException(400, "Image-to-Video Model API key is required. Please insert your API key in Section 03.")
     if not (folder/'audio-manifest.json').exists():raise HTTPException(400,'Audio separation must complete first.')
     from mask_review import require_approved
     try:require_approved(folder)
