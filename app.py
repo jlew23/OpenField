@@ -5,7 +5,36 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pipeline import run
 ROOT=Path(__file__).resolve().parent
-RUNS=ROOT/'runs';RUNS.mkdir(exist_ok=True)
+
+def get_openfield_root():
+    userprofile = os.environ.get('USERPROFILE')
+    if userprofile:
+        doc = Path(userprofile) / 'Documents' / 'openfield'
+        doc.mkdir(parents=True, exist_ok=True)
+        return doc
+    if shutil.which('cmd.exe'):
+        try:
+            win_prof = subprocess.check_output(['cmd.exe', '/c', 'echo', '%USERPROFILE%'], text=True).strip()
+            if win_prof and not win_prof.startswith('%'):
+                if shutil.which('wslpath'):
+                    wsl_path = subprocess.check_output(['wslpath', '-u', win_prof], text=True).strip()
+                    doc = Path(wsl_path) / 'Documents' / 'openfield'
+                    doc.mkdir(parents=True, exist_ok=True)
+                    return doc
+        except Exception:
+            pass
+    for p in Path('/mnt/c/Users').iterdir():
+        if p.is_dir() and p.name not in ['Public', 'Default', 'Default User', 'All Users']:
+            if (p / 'Documents').exists():
+                doc = p / 'Documents' / 'openfield'
+                doc.mkdir(parents=True, exist_ok=True)
+                return doc
+    doc = Path.home() / 'Documents' / 'openfield'
+    doc.mkdir(parents=True, exist_ok=True)
+    return doc
+
+RUNS=get_openfield_root()
+RUNS.mkdir(parents=True, exist_ok=True)
 def to_win_path(p):
     s = str(Path(p).resolve())
     if shutil.which('wslpath'):
@@ -87,19 +116,41 @@ def get(ident:str):
         raise HTTPException(404)
     return jobs[ident]
 
+def open_in_explorer(target_path):
+    win_path = to_win_path(target_path)
+    try:
+        if shutil.which('cmd.exe'):
+            subprocess.run(['cmd.exe', '/c', 'start', '""', win_path], check=False)
+            return win_path
+        elif shutil.which('explorer.exe'):
+            subprocess.run(['explorer.exe', win_path], check=False)
+            return win_path
+    except Exception:
+        pass
+    try:
+        os.startfile(win_path)
+    except Exception:
+        pass
+    return win_path
+
+@app.get('/system-info')
+def system_info():
+    RUNS.mkdir(parents=True, exist_ok=True)
+    return {'openfield_root': to_win_path(RUNS)}
+
+@app.post('/open-folder')
+def open_root_folder():
+    RUNS.mkdir(parents=True, exist_ok=True)
+    win_path = open_in_explorer(RUNS)
+    return {'folder_path': win_path}
+
 @app.post('/jobs/{ident}/open-folder')
 def open_folder(ident:str):
-    if len(ident)!=32 or not (RUNS/ident).exists():raise HTTPException(404)
-    target = (RUNS/ident).resolve()
-    win_path = to_win_path(target)
-    try:
-        subprocess.run(['cmd.exe', '/c', 'start', '""', win_path], check=False)
-    except Exception:
-        try:
-            subprocess.run(['explorer.exe', win_path], check=False)
-        except Exception:
-            pass
-    return {'folder_path': win_path}
+    if len(ident)==32 and (RUNS/ident).exists():
+        target = (RUNS/ident).resolve()
+        win_path = open_in_explorer(target)
+        return {'folder_path': win_path}
+    return open_root_folder()
 
 @app.post('/jobs/{ident}/seedance')
 def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:UploadFile|None=File(None),api_key:str|None=Form(None)):

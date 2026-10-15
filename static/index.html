@@ -1109,7 +1109,7 @@ footer {
     <h2>Live Execution Console</h2>
     <button type="button" id="open-folder-btn" class="secondary" style="margin-left:auto;font-size:12px;padding:6px 14px;cursor:pointer;" onclick="openFolder()">📁 Open Output Folder</button>
   </div>
-  <p class="hint" id="folder-path-display">Files are saved locally to: <code>runs/&lt;job_id&gt;</code></p>
+  <p class="hint" id="folder-path-display">Output directory: <strong style="color:#000000;background:#EAFF00;padding:2px 8px;border-radius:4px;user-select:all;border:1px solid #000;">C:\\Users\\Luda\\Documents\\openfield</strong></p>
   <div id="log-box">Ready. Choose your video above to begin local processing.</div>
 </section>
 
@@ -1369,11 +1369,15 @@ if (keyToggleBtn && apiKeyInput) {
 }
 
 async function openFolder() {
-  if (!jobId) { alert("Start a job first."); return; }
   try {
-    await json('/jobs/' + jobId + '/open-folder', { method: 'POST' });
+    const url = jobId ? '/jobs/' + jobId + '/open-folder' : '/open-folder';
+    const res = await json(url, { method: 'POST' });
+    if (res && res.folder_path) {
+      const el = $('#folder-path-display');
+      if (el) el.innerHTML = (jobId ? 'Job output folder: ' : 'Output directory: ') + '<strong style="color:#000000;background:#EAFF00;padding:2px 8px;border-radius:4px;user-select:all;border:1px solid #000;">' + res.folder_path + '</strong>';
+    }
   } catch(e) {
-    alert("Output folder: runs/" + jobId);
+    console.error('Error opening folder:', e);
   }
 }
 
@@ -1616,7 +1620,7 @@ async function watch() {
 
     if (j.logs && j.logs.length) {
       const b = $('#log-box');
-      b.textContent = j.logs.join('\n');
+      b.textContent = j.logs.join('\\n');
       b.scrollTop = b.scrollHeight;
     }
     if (j.folder_path) {
@@ -1632,7 +1636,7 @@ async function watch() {
     }
   } catch(e) {
     status(e.message, true);
-    if ($('#log-box')) $('#log-box').textContent += '\n[ERROR] ' + e.message;
+    if ($('#log-box')) $('#log-box').textContent += '\\n[ERROR] ' + e.message;
   }
 }
 
@@ -1748,6 +1752,13 @@ async function saveReview(approved) {
 
 $('#approve-mask').onclick = () => saveReview(true);
 $('#reject-mask').onclick = () => saveReview(false);
+
+fetch('/system-info').then(r => r.ok ? r.json() : null).then(info => {
+  if (info && info.openfield_root && !jobId) {
+    const el = $('#folder-path-display');
+    if (el) el.innerHTML = 'Output directory: <strong style="color:#000000;background:#EAFF00;padding:2px 8px;border-radius:4px;user-select:all;border:1px solid #000;">' + info.openfield_root + '</strong>';
+  }
+});
 
 if (jobId) {
   refresh().then(watch).catch(e => status(e.message, true));
