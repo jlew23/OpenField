@@ -190,7 +190,7 @@ Open `http://127.0.0.1:8770/station`, or click **ENTER THE STATION** on the Stud
 - **The Academy**: the built-in Rap Writing Bible as a game, with drills, graded report cards, boss fights, Listening Labs
   from your Spotify, cypher battles, the vowel-pattern matrix, and **the Forge**, which builds your own rapper persona.
 - **War Room**: systems board, live feed, persona council, briefings.
-- **Local GPU generation**: run the character swap on your own GPU through ComfyUI (Wan 2.2 Animate). See `docs/LOCAL-GENERATION.md`.
+- **Local GPU generation**: run the swap on your own GPU through ComfyUI. Ships a Wan 2.1 VACE video-to-video workflow, and **crew swap** gives each person in the clip (hotel lobby challenge, Oouuh challenge) their own reference, rendered in 5-second chunks for 15-20 s clips. See `docs/LOCAL-GENERATION.md`.
 
 Full guide: [`docs/STATION.md`](docs/STATION.md).
 

@@ -11,7 +11,11 @@ these titles so OpenField knows where to plug its artifacts in:
   OF_PROMPT     text encode       <- the generation prompt
   OF_NEGATIVE   text encode       <- negative prompt (optional)
   OF_SEED       sampler / seed    <- seed
-  OF_FRAMES     frame count input <- number of frames to generate (optional)
+  OF_FRAMES     frame count input <- number of frames to generate (optional; also gets width/height
+                                     when the node has them, e.g. WanVaceToVideo)
+  OF_SIZE       width/height node <- generation size (optional, when it is not the OF_FRAMES node)
+
+The output can be a Save Video / Video Combine node or a plain Save Image node (frames).
 
 Untagged graphs fall back to a best guess (first image loader, first video loader,
 first positive text encode, first sampler seed).
@@ -23,8 +27,9 @@ import requests
 from config import ROOT, setting
 
 WORKFLOWS = ROOT / 'workflows'
-TAGS = ('OF_REFERENCE', 'OF_VIDEO', 'OF_MASK', 'OF_CONTROL', 'OF_PROMPT', 'OF_NEGATIVE', 'OF_SEED', 'OF_FRAMES')
+TAGS = ('OF_REFERENCE', 'OF_VIDEO', 'OF_MASK', 'OF_CONTROL', 'OF_PROMPT', 'OF_NEGATIVE', 'OF_SEED', 'OF_FRAMES', 'OF_SIZE')
 VIDEO_EXT = ('.mp4', '.webm', '.mov', '.mkv', '.gif')
+IMAGE_EXT = ('.png', '.jpg', '.jpeg', '.webp')
 NEGATIVE = 'blurry, deformed hands, extra limbs, flicker, warped face, text, watermark, color shift, depth map colors'
 
 
@@ -59,12 +64,30 @@ def list_workflows():
             out.append({'name': f.name, 'ok': False, 'problem': 'Not API format. In ComfyUI use Workflow > Export (API).'})
             continue
         found = sorted({t for n in wf.values() for t in TAGS if _title(n) == t})
-        out.append({'name': f.name, 'ok': True, 'tags': found})
+        out.append({'name': f.name, 'ok': True, 'tags': found, 'kind': 'vace' if is_vace(wf) else 'swap'})
     return out
 
 
 def _is_api_format(wf):
     return isinstance(wf, dict) and wf and all(isinstance(v, dict) and 'class_type' in v for v in wf.values())
+
+
+def is_vace(wf):
+    """VACE-style graphs repaint a masked control video instead of loading the source footage."""
+    if any(n.get('class_type') == 'WanVaceToVideo' for n in wf.values()):
+        return True
+    titles = {_title(n) for n in wf.values()}
+    return 'OF_CONTROL' in titles and 'OF_MASK' in titles and 'OF_VIDEO' not in titles
+
+
+def load(workflow):
+    path = WORKFLOWS / Path(workflow).name
+    if not path.exists():
+        raise ValueError('Pick a workflow from ./workflows (export it from ComfyUI in API format).')
+    wf = json.loads(path.read_text(encoding='utf-8'))
+    if not _is_api_format(wf):
+        raise ValueError(f'{path.name} is not in ComfyUI API format.')
+    return path, wf
 
 
 def _title(node):
@@ -99,7 +122,8 @@ def _set(node, value, kind):
     inputs = node.setdefault('inputs', {})
     keys = {'image': ('image',), 'video': ('video', 'file', 'filename', 'path'),
             'text': ('text', 'prompt', 'positive_prompt', 'negative_prompt', 'string'),
-            'seed': ('seed', 'noise_seed'), 'frames': ('frame_load_cap', 'length', 'num_frames', 'frames', 'value')}[kind]
+            'seed': ('seed', 'noise_seed'), 'frames': ('frame_load_cap', 'length', 'num_frames', 'frames', 'value'),
+            'width': ('width',), 'height': ('height',)}[kind]
     for k in keys:
         if k in inputs and not isinstance(inputs[k], list):  # a list means "wired from another node"
             inputs[k] = value
@@ -241,4 +265,110 @@ def wait_and_finish(folder, prompt_id, status=print, timeout=6 * 3600):
                 status(msg)
                 last = msg
         time.sleep(5)
+    raise ValueError('Local render timed out.')
+
+
+def _size_node(wf, roles):
+    for role in ('OF_SIZE', 'OF_FRAMES'):
+        nid = roles.get(role)
+        if nid and all(k in wf[nid].get('inputs', {}) for k in ('width', 'height')):
+            return nid
+    return _first(wf, lambda n: all(k in n.get('inputs', {}) and not isinstance(n['inputs'][k], list) for k in ('width', 'height')))
+
+
+def queue(workflow, files, prompt, seed, frames=None, size=None, negative=NEGATIVE, tag=''):
+    """Upload files into the tagged nodes ({'OF_CONTROL': path, ...}), patch the values, queue it. Returns the prompt id."""
+    path, wf = load(workflow)
+    roles = locate(wf)
+    for role, src in files.items():
+        nid = roles.get(role)
+        if not nid:
+            raise ValueError(f'{path.name} has no node titled {role}.')
+        src = Path(src)
+        kind = 'image' if src.suffix.lower() in IMAGE_EXT else 'video'
+        name = upload(src)
+        if not (_set(wf[nid], name, kind) or _set(wf[nid], name, 'image' if kind == 'video' else 'video')):
+            raise ValueError(f'Could not find a file input on node {nid} ({wf[nid]["class_type"]}) for {role}.')
+    if roles.get('OF_PROMPT'):
+        _set(wf[roles['OF_PROMPT']], prompt, 'text')
+    if roles.get('OF_NEGATIVE') and negative:
+        _set(wf[roles['OF_NEGATIVE']], negative, 'text')
+    if roles.get('OF_SEED'):
+        _set(wf[roles['OF_SEED']], int(seed), 'seed')
+    if frames and roles.get('OF_FRAMES'):
+        _set(wf[roles['OF_FRAMES']], int(frames), 'frames')
+    if size:
+        nid = _size_node(wf, roles)
+        if nid:
+            _set(wf[nid], int(size[0]), 'width')
+            _set(wf[nid], int(size[1]), 'height')
+    r = requests.post(base_url() + '/prompt', json={'prompt': wf, 'client_id': uuid.uuid4().hex}, timeout=60)
+    if not r.ok:
+        raise ValueError(f'ComfyUI rejected {path.name} ({r.status_code}). Missing models or custom nodes? {r.text[:400]}')
+    pid = r.json().get('prompt_id')
+    if not pid:
+        raise ValueError('ComfyUI did not return a prompt id.')
+    return pid
+
+
+def _items(entry):
+    videos, images = [], []
+    for node_out in (entry.get('outputs') or {}).values():
+        for key in ('gifs', 'videos', 'images', 'files'):
+            for item in node_out.get(key, []) or []:
+                name = item.get('filename', '').lower()
+                if item.get('type') == 'temp':
+                    continue  # previews, not results
+                if name.endswith(VIDEO_EXT):
+                    videos.append(item)
+                elif name.endswith(IMAGE_EXT):
+                    images.append(item)
+    return videos, images
+
+
+def _view(item, timeout=600):
+    r = requests.get(base_url() + '/view', params={'filename': item['filename'], 'subfolder': item.get('subfolder', ''),
+                                                   'type': item.get('type', 'output')}, timeout=timeout)
+    r.raise_for_status()
+    return r.content
+
+
+def fetch_frames(prompt_id, status=print, label='', timeout=3 * 3600):
+    """Wait for a queued graph and return its output frames as RGB uint8 arrays."""
+    import io
+    import numpy as np
+    from PIL import Image
+    url, start, last = base_url(), time.time(), ''
+    while time.time() - start < timeout:
+        try:
+            entry = requests.get(f'{url}/history/{prompt_id}', timeout=20).json().get(prompt_id)
+        except (requests.RequestException, ValueError):
+            entry = None
+        if entry:
+            st = entry.get('status') or {}
+            if st.get('status_str') == 'error':
+                msgs = [m for m in st.get('messages', []) if m and m[0] == 'execution_error']
+                raise ValueError('ComfyUI run failed: ' + (msgs[0][1].get('exception_message', '') if msgs else 'unknown error')[:400])
+            videos, images = _items(entry)
+            if videos:
+                import av, tempfile
+                with tempfile.NamedTemporaryFile(suffix=Path(videos[-1]['filename']).suffix, delete=False) as tmp:
+                    tmp.write(_view(videos[-1]))
+                try:
+                    with av.open(tmp.name) as c:
+                        return [f.to_ndarray(format='rgb24') for f in c.decode(video=0)]
+                finally:
+                    Path(tmp.name).unlink(missing_ok=True)
+            if images:
+                images.sort(key=lambda i: (i.get('subfolder', ''), i['filename']))
+                return [np.asarray(Image.open(io.BytesIO(_view(i, 120))).convert('RGB')) for i in images]
+            if st.get('completed'):
+                raise ValueError('ComfyUI finished but the workflow saved nothing. Add a Save Image or Save Video node.')
+        else:
+            mins = int((time.time() - start) // 60)
+            msg = f'{label}rendering on local GPU · {mins} min'
+            if msg != last:
+                status(msg)
+                last = msg
+        time.sleep(3)
     raise ValueError('Local render timed out.')

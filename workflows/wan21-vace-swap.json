@@ -1,0 +1,247 @@
+{
+ "1": {
+  "class_type": "UNETLoader",
+  "_meta": {
+   "title": "Wan 2.1 VACE model (1.3B fits 8-12 GB; swap for wan2.1_vace_14B_fp16 on 24 GB+)"
+  },
+  "inputs": {
+   "unet_name": "wan2.1_vace_1.3B_fp16.safetensors",
+   "weight_dtype": "default"
+  }
+ },
+ "2": {
+  "class_type": "CLIPLoader",
+  "_meta": {
+   "title": "umT5 text encoder"
+  },
+  "inputs": {
+   "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+   "type": "wan",
+   "device": "default"
+  }
+ },
+ "3": {
+  "class_type": "VAELoader",
+  "_meta": {
+   "title": "Wan 2.1 VAE"
+  },
+  "inputs": {
+   "vae_name": "wan_2.1_vae.safetensors"
+  }
+ },
+ "4": {
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "OF_PROMPT"
+  },
+  "inputs": {
+   "text": "a person dancing in a hotel lobby, natural skin, consistent clothing, sharp face, realistic lighting",
+   "clip": [
+    "2",
+    0
+   ]
+  }
+ },
+ "5": {
+  "class_type": "CLIPTextEncode",
+  "_meta": {
+   "title": "OF_NEGATIVE"
+  },
+  "inputs": {
+   "text": "blurry, deformed hands, extra limbs, flicker, warped face, text, watermark, color shift, depth map colors",
+   "clip": [
+    "2",
+    0
+   ]
+  }
+ },
+ "6": {
+  "class_type": "LoadImage",
+  "_meta": {
+   "title": "OF_REFERENCE"
+  },
+  "inputs": {
+   "image": "reference.png"
+  }
+ },
+ "7": {
+  "class_type": "LoadVideo",
+  "_meta": {
+   "title": "OF_CONTROL"
+  },
+  "inputs": {
+   "file": "control.mp4"
+  }
+ },
+ "8": {
+  "class_type": "GetVideoComponents",
+  "_meta": {
+   "title": "control frames"
+  },
+  "inputs": {
+   "video": [
+    "7",
+    0
+   ]
+  }
+ },
+ "9": {
+  "class_type": "LoadVideo",
+  "_meta": {
+   "title": "OF_MASK"
+  },
+  "inputs": {
+   "file": "mask.mp4"
+  }
+ },
+ "10": {
+  "class_type": "GetVideoComponents",
+  "_meta": {
+   "title": "mask frames"
+  },
+  "inputs": {
+   "video": [
+    "9",
+    0
+   ]
+  }
+ },
+ "11": {
+  "class_type": "ImageToMask",
+  "_meta": {
+   "title": "mask to MASK"
+  },
+  "inputs": {
+   "image": [
+    "10",
+    0
+   ],
+   "channel": "red"
+  }
+ },
+ "12": {
+  "class_type": "WanVaceToVideo",
+  "_meta": {
+   "title": "OF_FRAMES"
+  },
+  "inputs": {
+   "positive": [
+    "4",
+    0
+   ],
+   "negative": [
+    "5",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ],
+   "width": 480,
+   "height": 832,
+   "length": 81,
+   "batch_size": 1,
+   "strength": 1.0,
+   "control_video": [
+    "8",
+    0
+   ],
+   "control_masks": [
+    "11",
+    0
+   ],
+   "reference_image": [
+    "6",
+    0
+   ]
+  }
+ },
+ "13": {
+  "class_type": "ModelSamplingSD3",
+  "_meta": {
+   "title": "shift"
+  },
+  "inputs": {
+   "model": [
+    "1",
+    0
+   ],
+   "shift": 8.0
+  }
+ },
+ "14": {
+  "class_type": "KSampler",
+  "_meta": {
+   "title": "OF_SEED"
+  },
+  "inputs": {
+   "model": [
+    "13",
+    0
+   ],
+   "seed": 42,
+   "steps": 20,
+   "cfg": 6.0,
+   "sampler_name": "uni_pc",
+   "scheduler": "simple",
+   "positive": [
+    "12",
+    0
+   ],
+   "negative": [
+    "12",
+    1
+   ],
+   "latent_image": [
+    "12",
+    2
+   ],
+   "denoise": 1.0
+  }
+ },
+ "15": {
+  "class_type": "TrimVideoLatent",
+  "_meta": {
+   "title": "drop reference frames"
+  },
+  "inputs": {
+   "samples": [
+    "14",
+    0
+   ],
+   "trim_amount": [
+    "12",
+    3
+   ]
+  }
+ },
+ "16": {
+  "class_type": "VAEDecode",
+  "_meta": {
+   "title": "decode"
+  },
+  "inputs": {
+   "samples": [
+    "15",
+    0
+   ],
+   "vae": [
+    "3",
+    0
+   ]
+  }
+ },
+ "17": {
+  "class_type": "SaveImage",
+  "_meta": {
+   "title": "OF_OUTPUT frames"
+  },
+  "inputs": {
+   "images": [
+    "16",
+    0
+   ],
+   "filename_prefix": "openfield/vace"
+  }
+ }
+}

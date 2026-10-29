@@ -1187,7 +1187,7 @@ footer {
       <label class="field">
         Target Video Model Provider
         <select id="model-provider-select">
-          <option value="local">Local GPU · ComfyUI (Wan 2.2 Animate, free)</option>
+          <option value="local">Local GPU · ComfyUI (Wan 2.1 VACE / Wan 2.2 Animate, free)</option>
           <option value="kling">Kling AI (v1.5 / v2.0)</option>
           <option value="seedance" selected>Seedance 2.5 / Higgsfield</option>
           <option value="runway">Runway Gen-3 Alpha</option>
@@ -1217,7 +1217,26 @@ footer {
           <input type="text" id="local-seed" placeholder="e.g. 42">
         </label>
       </div>
-      <p style="font-size:12px;margin-top:8px">Tag nodes <code>OF_REFERENCE</code>, <code>OF_VIDEO</code>, <code>OF_MASK</code> (SAM 3 mask from step 02), <code>OF_PROMPT</code>, <code>OF_SEED</code>. See docs/LOCAL-GENERATION.md for the Wan 2.2 Animate setup on 12 GB cards.</p>
+      <p style="font-size:12px;margin-top:8px"><b>wan21-vace-swap.json</b> (Wan 2.1 VACE) is the video-to-video workflow: it repaints the masked person with the depth silhouette as the motion guide, in five-second chunks, so long clips work. Wan 2.2 Animate graphs (tagged <code>OF_VIDEO</code>) also work. Setup: docs/LOCAL-GENERATION.md.</p>
+      <div id="crew-box" style="margin-top:12px;border-top:2px dashed #000;padding-top:12px">
+        <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:12px;margin-bottom:8px">👥 CREW SWAP · a different person for each person in the clip</div>
+        <div class="split">
+          <label class="field">Challenge
+            <select id="crew-preset">
+              <option value="hotel-lobby">Hotel lobby challenge · 2 people · 18 s</option>
+              <option value="oouuh">Oouuh challenge (acoustic) · 15 s</option>
+              <option value="custom">Custom</option>
+            </select>
+          </label>
+          <label class="field">Window (start s · length s)
+            <span style="display:flex;gap:6px"><input id="crew-start" type="number" min="0" step="0.5" value="0" style="width:50%"><input id="crew-seconds" type="number" min="1" max="60" step="0.5" value="18" style="width:50%"></span>
+          </label>
+        </div>
+        <button type="button" id="crew-find" class="secondary">Find the people in my clip</button>
+        <div id="crew-people" style="display:flex;gap:10px;flex-wrap:wrap;margin-top:10px"></div>
+        <button type="button" id="crew-go" disabled style="margin-top:10px">Swap the crew on my GPU</button>
+        <p id="crew-note" style="font-size:12px;margin-top:6px">People are numbered left to right. Person 1 uses Character 1 and Person 2 uses Character 2 below unless you pick a photo on the card. Leave a card empty to keep that person.</p>
+      </div>
     </div>
 
     <!-- MANDATORY USER RUNTIME & BILLING WARNING -->
@@ -1398,6 +1417,7 @@ function syncLocalPanel() {
       : st.error;
     const sel = document.getElementById('local-workflow');
     const keep = localStorage.getItem('openfield_local_workflow');
+    crewKinds = Object.fromEntries(st.workflows.map(w => [w.name, w.kind]));
     sel.innerHTML = st.workflows.length
       ? st.workflows.map(w => `<option value="${w.name}" ${w.ok ? '' : 'disabled'}>${w.name}${w.ok ? (w.tags.length ? ' · ' + w.tags.map(t => t.replace('OF_', '')).join(', ') : ' · untagged (auto-detect)') : ' · ' + w.problem}</option>`).join('')
       : '<option value="">No workflows yet: export one into ./workflows</option>';
@@ -1405,6 +1425,65 @@ function syncLocalPanel() {
     sel.onchange = () => localStorage.setItem('openfield_local_workflow', sel.value);
   }).catch(() => { document.getElementById('local-status').textContent = 'status check failed'; });
 }
+
+let crewKinds = {};
+function crewWorkflow() {
+  const wf = document.getElementById('local-workflow').value;
+  return crewKinds[wf] === 'vace' ? wf : 'wan21-vace-swap.json';
+}
+document.getElementById('crew-preset').onchange = e => {
+  const sec = { 'hotel-lobby': 18, 'oouuh': 15 }[e.target.value];
+  if (sec) document.getElementById('crew-seconds').value = sec;
+};
+document.getElementById('crew-find').onclick = async () => {
+  if (!jobId) { status('Prepare your original video first.', true); return; }
+  const box = document.getElementById('crew-people');
+  box.innerHTML = '<span class="hint">Finding people…</span>';
+  try {
+    const info = await json('/jobs/' + jobId + '/people');
+    if (!info.people.length) { box.innerHTML = '<span class="hint">No people found. Check the mask in step 02.</span>'; return; }
+    box.innerHTML = info.people.map(p => `
+      <label style="width:150px;border:2px solid #000;border-radius:10px;padding:8px;background:#fafafa;font-size:12px;cursor:pointer">
+        <img src="${p.thumb_url}?t=${Date.now()}" alt="Person ${p.id}" style="width:100%;height:150px;object-fit:cover;border-radius:6px;background:#ddd">
+        <b>Person ${p.id}</b> · on screen ${Math.round(p.visible * 100)}%
+        <input type="file" name="ref_${p.id}" accept="image/png,image/jpeg,image/webp" style="margin-top:6px;width:100%">
+      </label>`).join('');
+    document.getElementById('crew-go').disabled = false;
+    document.getElementById('crew-note').textContent = `Found ${info.count} ${info.count === 1 ? 'person' : 'people'}` +
+      (info.merged_frames ? ` · split apart in ${info.merged_frames} frames where they touch` : '') +
+      '. Person 1 uses Character 1 and Person 2 uses Character 2 unless you pick a photo on the card.';
+  } catch (e) { box.innerHTML = ''; status(e.message, true); }
+};
+document.getElementById('crew-go').onclick = async () => {
+  if (!jobId) { status('Prepare your original video first.', true); return; }
+  const b = document.getElementById('crew-go');
+  b.disabled = true;
+  try {
+    const data = new FormData();
+    const fallback = { 1: document.querySelector('input[name=sirio]'), 2: document.querySelector('input[name=tein]') };
+    let n = 0;
+    for (const input of document.querySelectorAll('#crew-people input[type=file]')) {
+      const id = input.name.slice(4);
+      let file = input.files[0];
+      if (!file && fallback[id] && fallback[id].files.length && fallback[id].files[0].type.startsWith('image/')) file = fallback[id].files[0];
+      if (!file && id === '1' && saved.sirio && !/\.(mp4|mov|webm)$/i.test(saved.sirio)) file = new File([await (await fetch(base() + saved.sirio)).blob()], saved.sirio);
+      if (!file && id === '2' && saved.tein) file = new File([await (await fetch(base() + saved.tein)).blob()], saved.tein);
+      if (file) { data.set(input.name, file); n++; }
+    }
+    if (!n) throw Error('Pick a photo for at least one person (or set Character 1 / Character 2 below).');
+    data.set('workflow', crewWorkflow());
+    data.set('preset', document.getElementById('crew-preset').value);
+    data.set('start', document.getElementById('crew-start').value);
+    data.set('seconds', document.getElementById('crew-seconds').value);
+    data.set('seed', document.getElementById('local-seed').value.trim());
+    const prompt = document.querySelector('#seedance textarea');
+    if (prompt && prompt.value.trim()) data.set('prompt', prompt.value.trim());
+    status(`Sending ${n} ${n === 1 ? 'person' : 'people'} to your local GPU…`);
+    await json('/jobs/' + jobId + '/crew', { method: 'POST', body: data });
+    await watch();
+  } catch (e) { status(e.message, true); }
+  finally { b.disabled = false; }
+};
 
 async function openFolder() {
   try {
@@ -1633,9 +1712,9 @@ async function refresh() {
     $('#raw-link').href = base() + 'seedance-result.mp4';
   }
 
-  const hd = await exists('hd/final-preview.mp4'), draft = await exists('final-preview.mp4');
-  if (draft || hd) {
-    const url = base() + (hd ? 'hd/' : '') + 'final-preview.mp4';
+  const hd = await exists('hd/final-preview.mp4'), draft = await exists('final-preview.mp4'), crew = await exists('crew-final.mp4');
+  if (draft || hd || crew) {
+    const url = base() + (hd ? 'hd/final-preview.mp4' : crew ? 'crew-final.mp4' : 'final-preview.mp4');
     $('#final-empty').hidden = true;
     $('#final-ready').hidden = false;
     if ($('#final-video').getAttribute('src') !== url) $('#final-video').src = url;

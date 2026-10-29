@@ -151,7 +151,7 @@ The best-known open alternative, Open-Higgsfield-AI (MIT), is a self-hosted stud
 models (image, video, lip-sync, multi-image references). Its strengths are breadth and presets; it relies on cloud
 APIs. OpenField's strength is the opposite: a local, QA-gated preparation pipeline. Lessons applied or queued:
 
-1. **Local engine**: done (ComfyUI bridge, Wan 2.2 Animate). See `docs/LOCAL-GENERATION.md`.
+1. **Local engine**: done (ComfyUI bridge; Wan 2.1 VACE video-to-video shipped, Wan 2.2 Animate supported), plus **crew swap**: a different reference for each person in two-person challenge clips. See `docs/LOCAL-GENERATION.md`.
 2. **Model routing per job**: the Studio now picks Seedance or a local workflow per draft; more workflows can be dropped into `workflows/`.
 3. **Presets library** (camera moves, looks): next, as tagged workflow variants.
 4. **Multi-reference identity**: next; workflows can already accept extra reference nodes.

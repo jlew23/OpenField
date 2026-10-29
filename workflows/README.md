@@ -15,8 +15,13 @@ to plug in each job's files:
 | `OF_PROMPT` | text encode | the generation prompt |
 | `OF_NEGATIVE` | text encode | a negative prompt (optional) |
 | `OF_SEED` | sampler | the seed |
-| `OF_FRAMES` | int / frame cap | the clip's frame count (optional) |
+| `OF_FRAMES` | int / frame cap | the clip's frame count (optional); also width/height when the node has them |
+| `OF_SIZE` | node with width/height | the generation size, when that is not the `OF_FRAMES` node |
 
 Untagged graphs fall back to a best guess (first image loader, first video loader, first
-positive text encode, first sampler seed). The output must come from a Save Video /
-Video Combine node. See `docs/LOCAL-GENERATION.md` for the Wan 2.2 Animate setup.
+positive text encode, first sampler seed). The output can come from a Save Video /
+Video Combine node or a plain Save Image node (frames). See `docs/LOCAL-GENERATION.md` for setup.
+
+**Shipped:** `wan21-vace-swap.json`, Wan 2.1 VACE video-to-video (core nodes only). OpenField sends it a
+control video (original background, grey depth silhouette inside the mask) as `OF_CONTROL`, the mask as
+`OF_MASK`, and runs it in 81-frame chunks, one person at a time (see Crew swap in the docs).
