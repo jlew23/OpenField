@@ -1,5 +1,5 @@
 """Crew swap tests: chunk planning, people tracking through contact, the VACE workflow file, and a full run."""
-import json, math, tempfile, unittest
+import json, math, tempfile, unittest, unittest.mock
 from pathlib import Path
 from fractions import Fraction
 
@@ -151,3 +151,37 @@ class Run(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ExistingModels(unittest.TestCase):
+    def _wf(self):
+        return json.loads((ROOT / 'workflows' / 'wan21-vace-swap.json').read_text())
+
+    def _run(self, unet, gguf=(), clip=('umt5_xxl_fp16.safetensors',), vae=('wan_2.1_vae.safetensors', 'wan_alpha_2.1_vae_alpha_channel.safetensors')):
+        table = {('UNETLoader', 'unet_name'): list(unet), ('UnetLoaderGGUF', 'unet_name'): list(gguf),
+                 ('CLIPLoader', 'clip_name'): list(clip), ('VAELoader', 'vae_name'): list(vae)}
+        wf = self._wf()
+        with unittest.mock.patch.object(comfy_bridge, '_options', lambda c, f: table.get((c, f), [])):
+            swaps = comfy_bridge.resolve_models(wf)
+        return wf, swaps
+
+    def test_uses_files_already_on_disk(self):
+        wf, swaps = self._run(['Wan2.1\\wan2.1_vace_14B_fp8_e4m3fn.safetensors', 'wan2.1_i2v_480p_14B.safetensors'])
+        self.assertEqual(wf['1']['inputs']['unet_name'], 'Wan2.1\\wan2.1_vace_14B_fp8_e4m3fn.safetensors')
+        self.assertEqual(wf['2']['inputs']['clip_name'], 'umt5_xxl_fp16.safetensors')
+        self.assertEqual(wf['3']['inputs']['vae_name'], 'wan_2.1_vae.safetensors')
+        self.assertEqual(len(swaps), 2)
+
+    def test_exact_match_left_alone(self):
+        wf, swaps = self._run(['wan2.1_vace_1.3B_fp16.safetensors'], clip=['umt5_xxl_fp8_e4m3fn_scaled.safetensors'])
+        self.assertEqual(swaps, [])
+
+    def test_gguf_build(self):
+        wf, swaps = self._run([], gguf=['Wan2.1-VACE-14B-Q4_K_M.gguf'])
+        self.assertEqual(wf['1']['class_type'], 'UnetLoaderGGUF')
+        self.assertEqual(wf['1']['inputs'], {'unet_name': 'Wan2.1-VACE-14B-Q4_K_M.gguf'})
+
+    def test_missing_vace_says_so(self):
+        with self.assertRaises(ValueError) as e:
+            self._run(['wan2.1_i2v_480p_14B.safetensors'])
+        self.assertIn('VACE', str(e.exception))

@@ -1412,8 +1412,10 @@ function syncLocalPanel() {
   if (keyWrap) keyWrap.style.opacity = local ? .35 : 1;
   if (!local) return;
   fetch('/local/status').then(r => r.json()).then(st => {
+    const vace = st.wan ? [...st.wan.vace, ...st.wan.vace_gguf] : [];
     document.getElementById('local-status').textContent = st.ok
-      ? `ComfyUI online${st.device ? ' · ' + st.device : ''}${st.vram_gb ? ' · ' + st.vram_gb + ' GB' : ''}`
+      ? `ComfyUI online${st.device ? ' · ' + st.device : ''}${st.vram_gb ? ' · ' + st.vram_gb + ' GB' : ''}` +
+        (st.wan ? (vace.length ? ` · Wan VACE: ${vace.join(', ')}` : ' · no Wan VACE model found') : '')
       : st.error;
     const sel = document.getElementById('local-workflow');
     const keep = localStorage.getItem('openfield_local_workflow');

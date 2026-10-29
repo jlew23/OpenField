@@ -33,8 +33,111 @@ IMAGE_EXT = ('.png', '.jpg', '.jpeg', '.webp')
 NEGATIVE = 'blurry, deformed hands, extra limbs, flicker, warped face, text, watermark, color shift, depth map colors'
 
 
+_base_cache = {}
+
+
 def base_url():
-    return (setting('COMFYUI_URL') or 'http://127.0.0.1:8188').rstrip('/')
+    """COMFYUI_URL if set; otherwise localhost, then the Windows host when OpenField runs inside WSL."""
+    configured = (setting('COMFYUI_URL') or '').rstrip('/')
+    if configured:
+        return configured
+    if _base_cache and time.time() - _base_cache['t'] < 60:
+        return _base_cache['url']
+    from station.llm import _wsl_host_candidates
+    cands = ['http://127.0.0.1:8188'] + [f'http://{h}:8188' for h in _wsl_host_candidates()]
+    for url in cands:
+        try:
+            if requests.get(url + '/system_stats', timeout=1.5).ok:
+                _base_cache.update(url=url, t=time.time())
+                return url
+        except requests.RequestException:
+            continue
+    return cands[0]
+
+
+# ------------------------------------------------------------------ models already on disk
+
+def _options(node_class, field):
+    """Choices ComfyUI offers for a loader input (the files in its models folders)."""
+    try:
+        info = requests.get(f'{base_url()}/object_info/{node_class}', timeout=10).json().get(node_class)
+    except (requests.RequestException, ValueError):
+        return None
+    if not info:
+        return None
+    spec = (info.get('input', {}).get('required', {}) or {}).get(field)
+    if not spec:
+        return []
+    first = spec[0]
+    if isinstance(first, list):
+        return first
+    if first == 'COMBO' and len(spec) > 1:  # newer schema: ["COMBO", {"options": [...]}]
+        return list((spec[1] or {}).get('options', []))
+    return []
+
+
+def _pick(names, want, avoid=()):
+    names = [n for n in names if not any(a in n.lower() for a in avoid)]
+    for words in want:
+        hit = [n for n in names if all(w in n.lower() for w in words)]
+        if hit:
+            return sorted(hit, key=len)[0]
+    return None
+
+
+def models():
+    """Wan files ComfyUI can see, grouped by role."""
+    unet = _options('UNETLoader', 'unet_name')
+    if unet is None:
+        return None
+    gguf = _options('UnetLoaderGGUF', 'unet_name') or []
+    return {'vace': [n for n in unet if 'vace' in n.lower()], 'vace_gguf': [n for n in gguf if 'vace' in n.lower()],
+            'text': [n for n in (_options('CLIPLoader', 'clip_name') or []) if 'umt5' in n.lower()],
+            'vae': [n for n in (_options('VAELoader', 'vae_name') or []) if 'wan' in n.lower()]}
+
+
+def resolve_models(wf):
+    """Point the workflow's loaders at the Wan files you already have (any folder, fp16/fp8/GGUF).
+
+    Returns a list of swaps made. Raises with a clear list when a needed file is missing."""
+    have = models()
+    if have is None:
+        return []  # ComfyUI too old for /object_info: leave the graph as is
+    swaps = []
+    for nid, node in wf.items():
+        ins, cls = node.get('inputs', {}), node.get('class_type')
+        if cls == 'UNETLoader' and isinstance(ins.get('unet_name'), str) and 'vace' in ins['unet_name'].lower():
+            current = ins['unet_name']
+            if current in have['vace']:
+                continue
+            size = '1.3b' if '1.3b' in current.lower() else '14b'
+            pick = _pick(have['vace'], [(size,), ()], avoid=('preview',)) or _pick(have['vace'], [()])
+            if pick:
+                ins['unet_name'] = pick
+            elif have['vace_gguf']:
+                pick = _pick(have['vace_gguf'], [(size,), ()])
+                node['class_type'] = 'UnetLoaderGGUF'
+                node['inputs'] = {'unet_name': pick}
+            else:
+                raise ValueError('No Wan 2.1 VACE model found in ComfyUI (models/diffusion_models or unet). '
+                                 'VACE is the Wan 2.1 model made for video-to-video editing; get '
+                                 'wan2.1_vace_1.3B_fp16.safetensors (or a VACE GGUF) and restart ComfyUI.')
+            swaps.append(f'{current} -> {pick}')
+        elif cls == 'CLIPLoader' and isinstance(ins.get('clip_name'), str) and 'umt5' in ins['clip_name'].lower():
+            if ins['clip_name'] not in have['text']:
+                pick = _pick(have['text'], [('fp8',), ()])
+                if not pick:
+                    raise ValueError('No umT5 text encoder found in ComfyUI (models/text_encoders).')
+                swaps.append(f"{ins['clip_name']} -> {pick}")
+                ins['clip_name'] = pick
+        elif cls == 'VAELoader' and isinstance(ins.get('vae_name'), str) and 'wan' in ins['vae_name'].lower():
+            if ins['vae_name'] not in have['vae']:
+                pick = _pick(have['vae'], [('2.1',), ('2_1',), ()], avoid=('alpha', '2.2', '2_2'))
+                if not pick:
+                    raise ValueError('No Wan 2.1 VAE found in ComfyUI (models/vae).')
+                swaps.append(f"{ins['vae_name']} -> {pick}")
+                ins['vae_name'] = pick
+    return swaps
 
 
 def status():
@@ -49,6 +152,10 @@ def status():
     except (requests.RequestException, ValueError) as e:
         info = {'ok': False, 'url': url, 'error': f'ComfyUI not reachable ({type(e).__name__}). Start ComfyUI or set COMFYUI_URL.'}
     info['workflows'] = list_workflows()
+    if info['ok']:
+        have = models()
+        if have is not None:
+            info['wan'] = have
     return info
 
 
@@ -279,6 +386,7 @@ def _size_node(wf, roles):
 def queue(workflow, files, prompt, seed, frames=None, size=None, negative=NEGATIVE, tag=''):
     """Upload files into the tagged nodes ({'OF_CONTROL': path, ...}), patch the values, queue it. Returns the prompt id."""
     path, wf = load(workflow)
+    resolve_models(wf)
     roles = locate(wf)
     for role, src in files.items():
         nid = roles.get(role)

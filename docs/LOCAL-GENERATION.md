@@ -31,6 +31,13 @@ silhouette inside it, so the new person follows the original person's motion and
 Also needed: `text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors` and `vae/wan_2.1_vae.safetensors`.
 All three are in `Comfy-Org/Wan_2.1_ComfyUI_repackaged` on Hugging Face (`split_files/...`).
 
+**Already have Wan 2.1 installed (another drive, other filenames, fp8 or GGUF)?** Nothing to download or rename.
+Before each render OpenField asks ComfyUI which models it can see and points the workflow at your VACE model,
+umT5 encoder and Wan 2.1 VAE (a VACE GGUF switches the loader to `UnetLoaderGGUF`). The Studio's Local
+engine line shows which VACE file it found. If ComfyUI runs on Windows and OpenField in WSL, it is found
+automatically on the Windows host; otherwise set `COMFYUI_URL`. Only VACE does the masked video-to-video swap:
+a plain Wan 2.1 image-to-video or text-to-video model is not enough, and the Studio says so.
+
 The workflow uses only core ComfyUI nodes (`LoadVideo`, `WanVaceToVideo`, `TrimVideoLatent`, `SaveImage`), so
 it needs no custom nodes; update ComfyUI if `LoadVideo` or `WanVaceToVideo` is missing. It writes frames
 (Save Image) and OpenField reassembles them, so there is no dependence on a video-save node.
