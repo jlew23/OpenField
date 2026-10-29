@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField Station · War Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/station/station.css">
+<style>
+body { --accent: var(--red); }
+.sys { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.sys > div { padding: 10px 12px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+.led { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.led.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.led.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.led.opt { background: var(--mute); }
+.feed { font-family: var(--mono); font-size: 12px; max-height: 420px; overflow: auto; display: flex; flex-direction: column-reverse; gap: 3px; }
+.feed div { padding: 4px 6px; border-radius: 6px; }
+.feed div.new { background: rgba(255,23,68,.08); animation: rise .3s; }
+.council { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
+.council .panel { padding: 12px; }
+.council .panel .bubble { max-width: none; background: transparent; border: none; padding: 0; font-size: 13px; }
+.stat { font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">In the back</div>
+  <div class="row" style="margin:6px 0 20px"><h1 class="big" style="flex:1">War Room</h1><button class="btn primary" id="brief">Jarvis, brief me</button></div>
+  <div class="grid g4" id="stats" style="margin-bottom:16px"></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+    <div class="stack">
+      <section class="panel"><div class="panel-head"><h3>Systems</h3><button class="btn small ghost" id="re">Recheck</button></div><div class="sys" id="sys"></div></section>
+      <section class="panel"><div class="panel-head"><h3>The council</h3><span class="small mute">Ask the whole crew at once</span></div>
+        <div class="row" style="flex-wrap:nowrap"><input type="text" id="cq" placeholder="e.g. Should the hook come before verse one? Pitch me a concept for track 3."><button class="btn primary" id="cgo">Convene</button></div>
+        <div class="council" id="council"></div></section>
+      <section class="panel" id="brief-box" hidden><div class="panel-head"><h3>Briefing</h3></div><div id="brief-chat"></div></section>
+    </div>
+    <div class="stack">
+      <section class="panel"><div class="panel-head"><h3>Live feed</h3><span class="pill"><span class="dot ok"></span>LIVE</span></div><div class="feed" id="feed"></div></section>
+      <section class="panel"><h3>Video jobs</h3><div id="jobs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+      <section class="panel"><h3>Songs & versions</h3><div id="songs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+      <section class="panel"><h3>Listening labs</h3><div id="labs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+    </div>
+  </div>
+</div>
+<script src="/static/station/station.js"></script>
+<script>
+const S = Station; S.shell('War Room');
+const LABELS = { ffmpeg: ['ffmpeg', 1], rubberband: ['Rubber Band (+3 pitch)', 1], demucs: ['Demucs vocals', 0], torch: ['PyTorch (GPU)', 0], cmudict: ['CMU dictionary', 0], enhancor_key: ['Enhancor key', 0], replicate_key: ['Replicate key', 0], spotify: ['Spotify', 0], bible: ['Rap Bible', 1] };
+let lastEvent = 0;
+async function load() {
+  const b = await S.get('/api/warroom');
+  const a = b.academy, f = b.forge, l = b.systems.llm;
+  S.$('#stats').innerHTML = [[a.rank.name, `${a.xp} XP · level ${a.level}`], [a.bars_written, 'bars written'], [b.db.songs + ' / ' + b.db.remixes, 'songs / versions'], [`${f.answered}/${f.need_answers}`, 'Forge answers']]
+    .map(([v, k]) => `<div class="panel"><div class="stat">${S.esc(v)}</div><div class="small dim">${S.esc(k)}</div></div>`).join('');
+  let local = null; try { local = await S.get('/local/status'); } catch (_) {}
+  S.$('#sys').innerHTML = `<div><span class="led ${l.ok ? 'ok' : 'bad'}"></span><span><b>LLM</b> ${S.esc(l.provider)} · ${S.esc(l.model || '?')}<br><span class="mute">${S.esc(l.detail || '')}</span></span></div>`
+    + (local ? `<div><span class="led ${local.ok ? 'ok' : 'opt'}"></span><span><b>ComfyUI</b> ${local.ok ? S.esc(local.device || 'online') : 'offline'}<br><span class="mute">${local.workflows.length} workflow(s)</span></span></div>` : '')
+    + Object.entries(LABELS).map(([k, [name, req]]) => `<div><span class="led ${b.systems[k] ? 'ok' : req ? 'bad' : 'opt'}"></span>${S.esc(name)}</div>`).join('');
+  S.$('#jobs').innerHTML = b.jobs.map(j => `<div class="row"><span class="tag">${S.esc(j.state || '?')}</span><span style="flex:1">${S.esc((j.status || '').slice(0, 70))}</span><span class="mute">${S.fmtAgo(j.updated)}</span></div>`).join('') || '<span class="mute">No video jobs yet. <a href="/">Open the Studio</a></span>';
+  S.$('#songs').innerHTML = b.songs.map(s => `<a class="row" href="/station/rapquest?song=${s.id}" style="text-decoration:none"><b style="flex:1">${S.esc(s.title)}</b><span class="mono mute">${s.bpm} BPM · ${s.remix_count}v</span></a>`).join('') || '<span class="mute">No songs yet.</span>';
+  S.$('#labs').innerHTML = b.labs.map(x => `<div class="row"><span style="flex:1">${S.esc(x.track.artists.join(', '))} · ${S.esc(x.track.name)}</span><span class="mono">${x.results.total ? x.results.score + '/' + x.results.total : '—'}</span></div>`).join('') || '<span class="mute">No labs yet.</span>';
+  if (!lastEvent) { b.events.forEach(addEvent); }
+  window._personas = b.personas;
+}
+function addEvent(e, fresh) {
+  lastEvent = Math.max(lastEvent, e.id);
+  const el = S.h(`<div class="${fresh ? 'new' : ''}"><span class="mute">${new Date(e.ts * 1000).toLocaleTimeString()}</span> <span style="color:var(--volt)">${S.esc(e.room)}</span> ${S.esc(e.message)}</div>`);
+  S.$('#feed').prepend(el);
+}
+async function live() {
+  // SSE feed of station events (reconnects every few minutes)
+  for (;;) {
+    try {
+      const r = await fetch('/api/events/stream?after=' + lastEvent); const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
+      for (;;) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true }); let i;
+        while ((i = buf.indexOf('\n\n')) >= 0) { const chunk = buf.slice(0, i); buf = buf.slice(i + 2); const d = chunk.split('\n').find(x => x.startsWith('data:')); if (d) { const e = JSON.parse(d.slice(5)); if (e.id > lastEvent) { addEvent(e, true); S.tone([1320], 'sine', 0, .03); } } } }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+S.$('#re').onclick = load;
+S.$('#cgo').onclick = () => {
+  const q = S.$('#cq').value.trim(); if (!q) return;
+  const crew = (window._personas || []).filter(p => p.id !== 'jarvis');
+  S.$('#council').innerHTML = '';
+  crew.forEach(p => {
+    const box = S.h(`<div class="panel" style="border-top:3px solid ${p.color || '#888'}"><div class="small" style="font-weight:800;color:${p.color}">${S.esc(p.name)}</div><div class="bubble typing" style="margin-top:6px"></div></div>`);
+    S.$('#council').appendChild(box); const b = S.$('.bubble', box); let acc = '';
+    S.stream('/api/chat', { persona_id: p.id, message: q, ephemeral: true }, {
+      delta: d => { acc += d.text; b.textContent = acc; }, error: d => { b.textContent = '⚠ ' + d.message; b.classList.remove('typing'); }, done: () => b.classList.remove('typing'),
+    });
+  });
+};
+S.$('#cq').onkeydown = e => { if (e.key === 'Enter') S.$('#cgo').click(); };
+S.$('#brief').onclick = () => {
+  S.$('#brief-box').hidden = false;
+  const c = S.chatWidget(S.$('#brief-chat'), { persona: 'jarvis', name: 'Jarvis', glyph: 'J', color: 'var(--volt)' });
+  c.send('Brief me: systems, what is in flight, what is blocked, and the one thing I should do next.');
+  S.$('#brief-box').scrollIntoView({ behavior: 'smooth' });
+};
+load().then(live);
+</script>
+</body>
+</html>

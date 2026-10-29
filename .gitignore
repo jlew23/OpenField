@@ -18,3 +18,7 @@ models/
 .github_token
 *.token
 
+
+# Station: personal knowledge (the Rap Bible) stays local
+station/knowledge/*.md
+!station/knowledge/README.md

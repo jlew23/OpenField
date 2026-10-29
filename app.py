@@ -46,6 +46,11 @@ def to_win_path(p):
 
 
 app=FastAPI();jobs={}
+
+# OpenField Station: Jarvis, RapQuest, personas, the Academy and the War Room.
+from station.api import router as station_router, init as station_init
+station_init(RUNS)
+app.include_router(station_router)
 @app.get('/')
 def index():return FileResponse(ROOT/'static/index.html')
 
@@ -188,6 +193,43 @@ def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:Uplo
         (folder/'status.json').write_text(json.dumps(jobs[ident]))
     threading.Thread(target=collect,daemon=True).start()
     return {'request_id':request_id,'id':ident,'state':'running','status':jobs[ident]['status']}
+
+@app.get('/local/status')
+def local_status():
+    from comfy_bridge import status
+    return status()
+
+@app.post('/jobs/{ident}/local')
+def local_generate(ident:str,prompt:str=Form(...),workflow:str=Form(...),sirio:UploadFile=File(...),seed:str=Form('')):
+    """Higgsfield-style character swap on your own GPU through ComfyUI. Free per render, same QA gate."""
+    if len(ident)!=32 or not all(c in '0123456789abcdef' for c in ident):raise HTTPException(404)
+    folder=RUNS/ident
+    if not folder.exists():raise HTTPException(404)
+    suffix=Path(sirio.filename or '').suffix.lower()
+    if suffix not in ['.png','.jpg','.jpeg','.webp']:raise HTTPException(400,'Local workflows take an image reference (png, jpg, webp).')
+    ref=folder/('local-reference'+suffix)
+    with ref.open('wb') as f:shutil.copyfileobj(sirio.file,f)
+    from comfy_bridge import submit,wait_and_finish
+    def log(s):
+        jobs.setdefault(ident,{'id':ident}).update(status=s)
+        jobs[ident].setdefault('logs',[]).append(f"[{time.strftime('%H:%M:%S')}] {s}")
+    jobs[ident]={'id':ident,'state':'running','status':'Preparing local render','logs':[]}
+    try:pid=submit(folder,prompt,ref,workflow,seed or None,log)
+    except ValueError as e:
+        jobs[ident].update(state='error',status=str(e))
+        raise HTTPException(409 if 'approv' in str(e).lower() or 'review' in str(e).lower() else 400,str(e))
+    except Exception as e:
+        jobs[ident].update(state='error',status=f'ComfyUI unreachable: {type(e).__name__}')
+        raise HTTPException(502,'ComfyUI is not reachable. Start it, or set COMFYUI_URL in .env.')
+    def collect():
+        try:
+            wait_and_finish(folder,pid,log)
+            jobs[ident].update(state='done',status='Local render ready · entire original source audio',final_url='/runs/'+ident+'/final-preview.mp4')
+        except Exception as e:
+            jobs[ident].update(state='error',status=str(e)+(' · raw render kept as local-result.mp4' if (folder/'local-result.mp4').exists() else ''))
+        (folder/'status.json').write_text(json.dumps({k:v for k,v in jobs[ident].items() if k!='logs'}))
+    threading.Thread(target=collect,daemon=True).start()
+    return {'id':ident,'state':'running','status':jobs[ident]['status'],'prompt_id':pid}
 
 @app.post('/jobs/{ident}/finish')
 def finish(ident:str,video:UploadFile=File(...)):

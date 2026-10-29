@@ -989,7 +989,7 @@ footer {
 
 <header>
   <div class="top-tag">LOCAL ENGINE // RTX 4070 CUDA</div>
-  <div class="system-status">OPENFIELD v2.5</div>
+  <a class="system-status" href="/station" style="text-decoration:none;background:#000;color:#EAFF00">ENTER THE STATION →</a>
 </header>
 
 <!-- HERO WITH OPENFIELD BRANDING & CREATIVE MASCOT SHOWCASE -->
@@ -1187,7 +1187,7 @@ footer {
       <label class="field">
         Target Video Model Provider
         <select id="model-provider-select">
-          <option value="wan2.1">Wan 2.1 (Local / Self-Hosted)</option>
+          <option value="local">Local GPU · ComfyUI (Wan 2.2 Animate, free)</option>
           <option value="kling">Kling AI (v1.5 / v2.0)</option>
           <option value="seedance" selected>Seedance 2.5 / Higgsfield</option>
           <option value="runway">Runway Gen-3 Alpha</option>
@@ -1204,6 +1204,20 @@ footer {
           <button type="button" class="key-toggle-btn" id="key-toggle-btn">SHOW</button>
         </div>
       </label>
+    </div>
+
+    <!-- LOCAL GPU (ComfyUI) -->
+    <div id="local-panel" hidden style="margin-top:14px;padding:14px;border:2px solid #000;border-radius:10px;background:#fff">
+      <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:12px;margin-bottom:8px">🖥 LOCAL ENGINE · <span id="local-status">checking ComfyUI…</span></div>
+      <div class="split">
+        <label class="field">Workflow (./workflows, API format)
+          <select id="local-workflow"></select>
+        </label>
+        <label class="field">Seed (blank = random)
+          <input type="text" id="local-seed" placeholder="e.g. 42">
+        </label>
+      </div>
+      <p style="font-size:12px;margin-top:8px">Tag nodes <code>OF_REFERENCE</code>, <code>OF_VIDEO</code>, <code>OF_MASK</code> (SAM 3 mask from step 02), <code>OF_PROMPT</code>, <code>OF_SEED</code>. See docs/LOCAL-GENERATION.md for the Wan 2.2 Animate setup on 12 GB cards.</p>
     </div>
 
     <!-- MANDATORY USER RUNTIME & BILLING WARNING -->
@@ -1353,7 +1367,9 @@ if (providerSelect) {
   providerSelect.value = savedProvider;
   providerSelect.addEventListener('change', () => {
     localStorage.setItem('openfield_model_provider', providerSelect.value);
+    syncLocalPanel();
   });
+  syncLocalPanel();
 }
 
 if (keyToggleBtn && apiKeyInput) {
@@ -1366,6 +1382,28 @@ if (keyToggleBtn && apiKeyInput) {
       keyToggleBtn.textContent = 'SHOW';
     }
   });
+}
+
+function syncLocalPanel() {
+  const local = providerSelect && providerSelect.value === 'local';
+  const panel = document.getElementById('local-panel');
+  if (!panel) return;
+  panel.hidden = !local;
+  const keyWrap = apiKeyInput && apiKeyInput.closest('label');
+  if (keyWrap) keyWrap.style.opacity = local ? .35 : 1;
+  if (!local) return;
+  fetch('/local/status').then(r => r.json()).then(st => {
+    document.getElementById('local-status').textContent = st.ok
+      ? `ComfyUI online${st.device ? ' · ' + st.device : ''}${st.vram_gb ? ' · ' + st.vram_gb + ' GB' : ''}`
+      : st.error;
+    const sel = document.getElementById('local-workflow');
+    const keep = localStorage.getItem('openfield_local_workflow');
+    sel.innerHTML = st.workflows.length
+      ? st.workflows.map(w => `<option value="${w.name}" ${w.ok ? '' : 'disabled'}>${w.name}${w.ok ? (w.tags.length ? ' · ' + w.tags.map(t => t.replace('OF_', '')).join(', ') : ' · untagged (auto-detect)') : ' · ' + w.problem}</option>`).join('')
+      : '<option value="">No workflows yet: export one into ./workflows</option>';
+    if (keep) sel.value = keep;
+    sel.onchange = () => localStorage.setItem('openfield_local_workflow', sel.value);
+  }).catch(() => { document.getElementById('local-status').textContent = 'status check failed'; });
 }
 
 async function openFolder() {
@@ -1679,6 +1717,17 @@ $('#seedance').onsubmit = async e => {
         }
         data.set(name, new File([await (await fetch(base() + saved[name])).blob()], saved[name]));
       }
+    }
+    if (providerSelect && providerSelect.value === 'local') {
+      const wf = document.getElementById('local-workflow').value;
+      if (!wf) throw Error('Export a ComfyUI workflow (API format) into ./workflows first.');
+      data.set('workflow', wf);
+      data.set('seed', document.getElementById('local-seed').value.trim());
+      data.delete('tein'); data.delete('api_key');
+      status('Sending prepared video, SAM 3 mask and reference to your local GPU…');
+      await json('/jobs/' + jobId + '/local', { method: 'POST', body: data });
+      await watch();
+      return;
     }
     status('Uploading references and submitting draft conditioning…');
     await json('/jobs/' + jobId + '/seedance', { method: 'POST', body: data });

@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField Station · The Bridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/station/station.css">
+<style>
+.hero { display: grid; grid-template-columns: 1.35fr 1fr; gap: 22px; align-items: start; }
+@media (max-width: 960px) { .hero { grid-template-columns: 1fr; } }
+.jarvis-head { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.orb { width: 54px; height: 54px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #fff, var(--volt) 30%, #6a7300 70%, #000); box-shadow: 0 0 30px rgba(234,255,0,.55); animation: pulse 3.2s ease-in-out infinite; }
+@keyframes pulse { 50% { box-shadow: 0 0 55px rgba(234,255,0,.85); transform: scale(1.04); } }
+.rooms { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.room { text-decoration: none; padding: 16px; border-radius: 14px; border: 1px solid var(--line); background: linear-gradient(160deg, var(--panel-2), var(--bg-2)); transition: transform .15s, border-color .15s; min-height: 118px; display: flex; flex-direction: column; justify-content: space-between; }
+.room:hover { transform: translateY(-2px); border-color: var(--volt); }
+.room .k { font-family: var(--mono); font-size: 10px; letter-spacing: .16em; color: var(--mute); }
+.room b { font-family: var(--display); font-size: 1.3rem; text-transform: uppercase; }
+.room .stat { font-family: var(--mono); font-size: 12px; color: var(--dim); }
+.quick { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.roster { display: flex; gap: 8px; flex-wrap: wrap; }
+.face { width: 46px; height: 46px; border-radius: 12px; display: grid; place-items: center; font-family: var(--display); font-weight: 900; color: #000; text-decoration: none; font-size: 18px; border: 2px solid transparent; }
+.face:hover { border-color: #fff; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Audio · Video · Pen</div>
+  <h1 class="big" style="margin:6px 0 22px">The Bridge</h1>
+  <div class="hero">
+    <section class="panel glow">
+      <div class="jarvis-head">
+        <div class="orb"></div>
+        <div><h2>J.A.R.V.I.S.</h2><div class="small dim" id="jarvis-sub">At the helm. Mildly unimpressed.</div></div>
+        <div class="spacer"></div>
+        <button class="btn small ghost" id="new-chat">New session</button>
+      </div>
+      <div id="jarvis"></div>
+      <div class="quick" id="quick"></div>
+    </section>
+    <aside class="stack">
+      <div class="rooms" id="rooms"></div>
+      <section class="panel">
+        <div class="panel-head"><h3>The roster</h3><a class="small dim" href="/station/persona">All personas →</a></div>
+        <div class="roster" id="roster"></div>
+      </section>
+      <section class="panel">
+        <div class="panel-head"><h3>Live feed</h3><a class="small dim" href="/station/warroom">War Room →</a></div>
+        <div id="feed" class="stack small" style="gap:6px;max-height:220px;overflow:auto"></div>
+      </section>
+    </aside>
+  </div>
+</div>
+<script src="/static/station/station.js"></script>
+<script>
+const S = Station; S.shell('Bridge');
+const GREET = [
+  'Systems nominal. The studio is warm, the personas are awake, and I have already found three problems with whatever you are about to suggest.',
+  'Welcome back. The bars will not write themselves, though I gather you were hoping I would.',
+  'All rooms online. Shall we make art, or shall we discuss making art for forty minutes first?',
+  'Good to see you. The Academy misses you, the Cypher is restless, and Slim has eaten a microphone again.',
+];
+let jarvis;
+function startChat() {
+  S.$('#jarvis').innerHTML = '';
+  jarvis = S.chatWidget(S.$('#jarvis'), { persona: 'jarvis', name: 'Jarvis', glyph: 'J', color: 'var(--volt)',
+    greeting: GREET[Math.floor(Math.random() * GREET.length)], placeholder: 'Tell Jarvis what we are doing today…',
+    onAction: r => { if (r.ok) loadRooms(); } });
+}
+startChat();
+S.$('#new-chat').onclick = startChat;
+const ask = sessionStorage.getItem('jarvis-ask'); if (ask) { sessionStorage.removeItem('jarvis-ask'); setTimeout(() => jarvis.send(ask), 300); }
+['Brief me', 'What should I practise today?', 'Remix my latest song for a 140 BPM beat', 'Ask Biggie what he thinks of my last verse', 'Roast my progress']
+  .forEach(q => { const c = S.h(`<span class="chip click">${S.esc(q)}</span>`); c.onclick = () => jarvis.send(q); S.$('#quick').appendChild(c); });
+
+async function loadRooms() {
+  let b; try { b = await S.get('/api/warroom'); } catch (e) { return; }
+  const a = b.academy, f = b.forge;
+  const rooms = [
+    ['/station/academy', 'TRAIN', 'Academy', `${a.rank.name} · ${a.xp} XP · ${a.rhythm.days_this_week}/${a.rhythm.goal} days`],
+    ['/station/rapquest', 'WRITE · REMIX', 'RapQuest', `${b.db.songs} songs · ${b.db.remixes} remixes`],
+    ['/', 'VIDEO', 'Studio', `${b.jobs.length} job(s)${b.jobs[0] ? ' · ' + b.jobs[0].state : ''}`],
+    ['/station/warroom', 'COMMAND', 'War Room', `${b.systems.llm.ok ? 'LLM up' : 'LLM down'} · ${b.db.events} events`],
+    ['/station/academy#forge', 'BECOME', 'The Forge', `${f.answered}/${f.need_answers} answers · ${Math.round(f.progress * 100)}%`],
+    ['/station/academy#cypher', 'BATTLE', 'Cypher', 'Pass the mic to the crew'],
+  ];
+  S.$('#rooms').innerHTML = rooms.map(([href, k, name, stat]) => `<a class="room" href="${href}"><span class="k">${k}</span><b>${name}</b><span class="stat">${S.esc(stat)}</span></a>`).join('');
+  S.$('#roster').innerHTML = b.personas.filter(p => p.id !== 'jarvis').map(p => `<a class="face" title="${S.esc(p.name)}" href="/station/persona?id=${p.id}" style="background:${p.color || '#888'}">${S.esc(p.glyph || p.name[0])}</a>`).join('');
+  S.$('#feed').innerHTML = b.events.slice(-14).reverse().map(e => `<div><span class="tag">${S.esc(e.room)}</span> ${S.esc(e.message)} <span class="mute">${S.fmtAgo(e.ts)}</span></div>`).join('') || '<div class="mute">Quiet. Suspiciously quiet.</div>';
+}
+loadRooms(); setInterval(loadRooms, 20000);
+</script>
+</body>
+</html>
