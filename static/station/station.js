@@ -348,6 +348,7 @@ S.initPalette = () => {
     { label: 'Go: Rhyme Lab sandbox', run: () => location.href = '/station/academy#sandbox' },
     { label: 'Go: The Forge', run: () => location.href = '/station/academy#forge' },
     { label: 'Go: War Room', run: () => location.href = '/station/warroom' },
+    { label: 'Ask Claude (War Room line)', run: () => location.href = '/station/warroom#claude' },
     { label: 'Go: Video Studio', run: () => location.href = '/' },
     { label: 'Settings: LLM provider & keys', run: S.openSettings },
   ]);

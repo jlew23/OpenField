@@ -21,6 +21,17 @@ body { --accent: var(--red); }
 .council .panel { padding: 12px; }
 .council .panel .bubble { max-width: none; background: transparent; border: none; padding: 0; font-size: 13px; }
 .stat { font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; }
+#claude { border-top: 3px solid #d97757; }
+#cl-status, .sys > div > span { overflow-wrap: anywhere; min-width: 0; }
+#cl-log { max-height: 380px; overflow: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+#cl-log .m { padding: 8px 10px; border-radius: 10px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+#cl-log .m.user { background: var(--bg-2); align-self: flex-end; max-width: 88%; }
+#cl-log .m.claude { border: 1px solid var(--line); }
+#cl-log .m .who { font-family: var(--mono); font-size: 11px; color: #d97757; margin-bottom: 3px; }
+#cl-log .m pre { white-space: pre-wrap; }
+#cl-tools { font-family: var(--mono); font-size: 11px; }
+#cl-cfg label { display: block; font-size: 12px; margin-top: 8px; }
+#cl-cfg input[type=text] { width: 100%; }
 </style>
 </head>
 <body>
@@ -37,6 +48,26 @@ body { --accent: var(--red); }
       <section class="panel" id="brief-box" hidden><div class="panel-head"><h3>Briefing</h3></div><div id="brief-chat"></div></section>
     </div>
     <div class="stack">
+      <section class="panel" id="claude">
+        <div class="panel-head"><h3><span class="led opt" id="cl-led" style="display:inline-block;margin-right:6px"></span>Claude line</h3>
+          <span class="row" style="gap:6px"><button class="btn small ghost" id="cl-new" title="Start a fresh thread">New thread</button><button class="btn small ghost" id="cl-gear" title="Settings">⚙</button></span></div>
+        <div class="small mute" id="cl-status">Checking Claude Code…</div>
+        <div id="cl-cfg" hidden class="small" style="margin-top:6px">
+          <label>jarvis-galaxy folder <input type="text" id="cl-dir" placeholder="auto: Documents/jarvis-galaxy"></label>
+          <label>Allowed tools (blank = read-only; e.g. <code>Read,Grep,Edit,Bash(git status)</code>) <input type="text" id="cl-tools-in"></label>
+          <label>Model (blank = Claude Code default) <input type="text" id="cl-model" placeholder="e.g. opus"></label>
+          <label><input type="checkbox" id="cl-lan"> Answer other devices on my network (phone, laptop)</label>
+          <div id="cl-folders" class="mute" style="margin-top:6px"></div>
+          <button class="btn small primary" id="cl-save" style="margin-top:8px">Save</button>
+        </div>
+        <div id="cl-log"></div>
+        <div id="cl-tools" class="mute"></div>
+        <div class="row" style="flex-wrap:nowrap;gap:6px;margin-top:6px">
+          <select id="cl-agent" title="Who answers" style="max-width:38%"><option value="">Claude</option></select>
+          <input type="text" id="cl-q" placeholder="Message Claude (runs on this PC in jarvis-galaxy)" style="flex:1">
+          <button class="btn primary" id="cl-go">Send</button>
+        </div>
+      </section>
       <section class="panel"><div class="panel-head"><h3>Live feed</h3><span class="pill"><span class="dot ok"></span>LIVE</span></div><div class="feed" id="feed"></div></section>
       <section class="panel"><h3>Video jobs</h3><div id="jobs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
       <section class="panel"><h3>Songs & versions</h3><div id="songs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
@@ -100,6 +131,58 @@ S.$('#brief').onclick = () => {
   c.send('Brief me: systems, what is in flight, what is blocked, and the one thing I should do next.');
   S.$('#brief-box').scrollIntoView({ behavior: 'smooth' });
 };
+// ---------------------------------------------------------- Claude line
+const CL = { busy: false };
+function clMsg(role, text, agent) {
+  const el = S.h(`<div class="m ${role === 'user' ? 'user' : 'claude'}">${role === 'user' ? '' : `<div class="who">${S.esc(agent ? '@' + agent : 'Claude')}</div>`}<div class="body"></div></div>`);
+  const body = S.$('.body', el);
+  if (role === 'user') body.textContent = text; else body.innerHTML = S.md(text || '');
+  S.$('#cl-log').appendChild(el); S.$('#cl-log').scrollTop = 1e9; return body;
+}
+async function clStatus() {
+  let st;
+  try { st = await S.get('/api/claude/status'); } catch (e) { S.$('#cl-status').textContent = e.message; S.$('#cl-led').className = 'led bad'; return; }
+  S.$('#cl-led').className = 'led ' + (st.ok ? 'ok' : 'bad');
+  S.$('#cl-status').innerHTML = st.ok
+    ? `${S.esc(st.version || 'Claude Code')} · <span class="mono">${S.esc(st.galaxy)}</span> · ${st.agents.length} agent${st.agents.length === 1 ? '' : 's'}${st.allowed_tools ? ' · tools: ' + S.esc(st.allowed_tools) : ' · read-only'}`
+    : S.esc(st.detail);
+  const sel = S.$('#cl-agent'), keep = sel.value;
+  sel.innerHTML = '<option value="">Claude</option>' + st.agents.map(a => `<option value="${S.esc(a.name)}" title="${S.esc(a.description)}">@${S.esc(a.name)}</option>`).join('');
+  sel.value = keep;
+  S.$('#cl-dir').value = st.galaxy && !S.$('#cl-dir').dataset.touched ? st.galaxy : S.$('#cl-dir').value;
+  S.$('#cl-tools-in').value = st.allowed_tools || ''; S.$('#cl-model').value = st.model || ''; S.$('#cl-lan').checked = st.allow_lan;
+  S.$('#cl-folders').textContent = st.folders.length ? 'Found: ' + st.folders.map(f => `${f.folder} (${f.files} files)`).join(', ') : (st.galaxy ? 'No sub… folders found in jarvis-galaxy.' : '');
+}
+async function clThread() {
+  try { (await S.get('/api/claude/thread')).forEach(m => { if (m.role === 'user' || m.role === 'assistant') clMsg(m.role, m.content, (m.meta || {}).agent); }); } catch (_) {}
+}
+async function clSend() {
+  const q = S.$('#cl-q').value.trim(); if (!q || CL.busy) return;
+  CL.busy = true; S.$('#cl-go').disabled = true; S.$('#cl-q').value = '';
+  const agent = S.$('#cl-agent').value;
+  clMsg('user', (agent ? '@' + agent + ' ' : '') + q);
+  const body = clMsg('claude', '', agent); body.classList.add('typing'); let acc = '';
+  await S.stream('/api/claude/ask', { message: q, agent }, {
+    delta: d => { acc += d.text; body.innerHTML = S.md(acc); S.$('#cl-log').scrollTop = 1e9; },
+    tool: d => { S.$('#cl-tools').textContent = '⚙ using ' + d.text; },
+    error: d => { body.innerHTML = '<span style="color:var(--red)">⚠ ' + S.esc(d.text || d.message) + '</span>'; },
+    done: d => { if (d.text && d.text !== acc) body.innerHTML = S.md(d.text); S.$('#cl-tools').textContent = d.cost ? `$${d.cost.toFixed(3)} · ${d.turns} turn${d.turns === 1 ? '' : 's'}` : ''; },
+  });
+  body.classList.remove('typing'); CL.busy = false; S.$('#cl-go').disabled = false; S.$('#cl-q').focus();
+}
+S.$('#cl-go').onclick = clSend;
+S.$('#cl-q').onkeydown = e => { if (e.key === 'Enter') clSend(); };
+S.$('#cl-gear').onclick = () => { S.$('#cl-cfg').hidden = !S.$('#cl-cfg').hidden; };
+S.$('#cl-dir').oninput = () => { S.$('#cl-dir').dataset.touched = '1'; };
+S.$('#cl-save').onclick = async () => {
+  try {
+    await S.post('/api/claude/config', { galaxy_dir: S.$('#cl-dir').value.trim(), allowed_tools: S.$('#cl-tools-in').value.trim(), model: S.$('#cl-model').value.trim(), allow_lan: S.$('#cl-lan').checked });
+    S.toast('Claude line saved'); clStatus();
+  } catch (e) { S.toast(e.message, 'bad'); }
+};
+S.$('#cl-new').onclick = async () => { await S.post('/api/claude/new'); S.$('#cl-log').innerHTML = ''; S.$('#cl-tools').textContent = ''; S.toast('New thread'); };
+if (location.hash === '#claude') setTimeout(() => { S.$('#claude').scrollIntoView({ behavior: 'smooth' }); S.$('#cl-q').focus(); }, 300);
+clStatus(); clThread(); setInterval(clStatus, 60000);
 load().then(live);
 </script>
 </body>

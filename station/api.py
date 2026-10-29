@@ -3,10 +3,10 @@ import json, time
 from pathlib import Path
 from urllib.parse import quote
 
-from fastapi import APIRouter, Body, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Body, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, PlainTextResponse, RedirectResponse, StreamingResponse
 
-from . import (academy, beat, bible, cypher, db, flow, forge, grading, jarvis, lab, llm, lyrics,
+from . import (academy, beat, bible, claude_line, cypher, db, flow, forge, grading, jarvis, lab, llm, lyrics,
                personas, rapquest)
 
 router = APIRouter()
@@ -25,6 +25,7 @@ def init(runs_root):
     bible.set_data_dir(root / 'knowledge')
     rapquest.set_beats_dir(root / 'beats')
     jarvis.set_runs(runs_root)
+    claude_line.set_runs(runs_root)
 
 
 def _err(e, code=400):
@@ -872,3 +873,60 @@ def events_stream(after: int = 0):
             yield ': ping\n\n'
             time.sleep(1.5)
     return StreamingResponse(gen(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache'})
+
+
+# ------------------------------------------------------------------ the Claude line (Claude Code on this machine)
+
+LOCAL = {'127.0.0.1', '::1', 'localhost', 'testclient'}
+
+
+def _local_only(request: Request):
+    host = request.client.host if request.client else ''
+    if host in LOCAL or host.startswith('127.') or claude_line.config()['allow_lan']:
+        return
+    raise HTTPException(403, 'The Claude line only answers this computer. Turn on LAN access in the War Room to allow other devices.')
+
+
+@router.get('/api/claude/status')
+def claude_status(request: Request):
+    _local_only(request)
+    return claude_line.status()
+
+
+@router.post('/api/claude/config')
+def claude_config(request: Request, body: dict = Body(...)):
+    host = request.client.host if request.client else ''
+    if not (host in LOCAL or host.startswith('127.')):  # only this computer may change who can reach it
+        raise HTTPException(403, 'Change Claude line settings from this computer.')
+    claude_line._status_cache.clear()
+    return claude_line.update_config(body)
+
+
+@router.get('/api/claude/thread')
+def claude_thread(request: Request):
+    _local_only(request)
+    return claude_line.history()
+
+
+@router.post('/api/claude/new')
+def claude_new(request: Request):
+    _local_only(request)
+    return claude_line.new_thread()
+
+
+@router.post('/api/claude/ask')
+def claude_ask(request: Request, body: dict = Body(...)):
+    _local_only(request)
+    message = (body.get('message') or '').strip()
+    if not message:
+        raise HTTPException(400, 'Empty message')
+    agent = (body.get('agent') or '').strip() or None
+
+    def gen():
+        yield sse('meta', {'agent': agent})
+        try:
+            for kind, value in claude_line.ask(message, agent):
+                yield sse(kind, value if isinstance(value, dict) else {'text': value})
+        except Exception as e:
+            yield sse('error', {'text': f'Claude line failed ({type(e).__name__}: {e})'})
+    return StreamingResponse(gen(), media_type='text/event-stream', headers={'Cache-Control': 'no-cache', 'X-Accel-Buffering': 'no'})

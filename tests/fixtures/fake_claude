@@ -1,0 +1,19 @@
+#!/usr/bin/env python3
+"""Stand-in for the Claude Code CLI: prints stream-json like `claude -p --output-format stream-json --verbose`."""
+import json, sys, os
+a = sys.argv[1:]
+if a == ['--version']: print('2.1.312 (Claude Code)'); sys.exit(0)
+log = os.path.join(os.path.dirname(__file__), 'calls.jsonl')
+open(log, 'a').write(json.dumps({'argv': a, 'cwd': os.getcwd()}) + '\n')
+if os.environ.get('FAKE_OLD') and '--include-partial-messages' in a:
+    print("error: unknown option '--include-partial-messages'", file=sys.stderr); sys.exit(1)
+prompt = a[a.index('-p') + 1]; sid = a[a.index('--resume') + 1] if '--resume' in a else 'sess-123'
+out = lambda o: print(json.dumps(o), flush=True)
+out({'type': 'system', 'subtype': 'init', 'session_id': sid, 'cwd': os.getcwd()})
+reply = f"Copy that. You said: **{prompt.splitlines()[-1]}** (session {sid}, cwd {os.path.basename(os.getcwd())})"
+out({'type': 'assistant', 'message': {'content': [{'type': 'tool_use', 'name': 'Read', 'input': {}}]}})
+if '--include-partial-messages' in a:
+    for w in reply.split(' '):
+        out({'type': 'stream_event', 'event': {'type': 'content_block_delta', 'delta': {'type': 'text_delta', 'text': w + ' '}}})
+out({'type': 'assistant', 'message': {'content': [{'type': 'text', 'text': reply}]}})
+out({'type': 'result', 'subtype': 'success', 'is_error': False, 'result': reply, 'session_id': sid, 'total_cost_usd': 0.0123, 'num_turns': 1})

@@ -9,7 +9,7 @@ An audio · video · pen workstation with **Jarvis at the helm**. Open `http://1
 | **RapQuest** `/station/rapquest` | Songs, beats, flow lab grid, persona remixes on a new tempo, takes & comp, Pocket Trainer |
 | **Personas** `/station/persona` | One page per persona: chat, drills, quick cypher, pocket meter, editable prompt |
 | **The Academy** `/station/academy` | The Rap Writing Bible as a game: chapters, drills, bosses, labs, cypher, Rhyme Lab, matrix, Forge |
-| **War Room** `/station/warroom` | Systems board, live event feed, video jobs, persona council, Jarvis briefings |
+| **War Room** `/station/warroom` | Claude line (Claude Code in jarvis-galaxy), systems board, live event feed, video jobs, persona council, Jarvis briefings |
 | **Studio** `/` | The original OpenField video pipeline (now with a **Local GPU · ComfyUI** engine) |
 
 Press **⌘K / Ctrl+K** anywhere for the command palette (every room, persona and action, or "Ask Jarvis").
@@ -136,6 +136,25 @@ At 8 answers a **preview** reads you (stage-name ideas, themes). Beat the Level 
 Forge synthesises **your own persona**: it joins the roster, remixes any song in RapQuest, and exports as a
 `SKILL.md` you can use with Claude Code or other agent tools. Nothing leaves your machine except what your
 chosen LLM sees.
+
+## The Claude line (War Room)
+
+The War Room has a permanent line to **Claude Code running on your own PC**, inside your `jarvis-galaxy`
+folder, so Claude is reachable whenever the Station is open, with that folder's `CLAUDE.md`, settings, skills
+and agents loaded.
+
+- **Setup:** install Claude Code once and log in (`npm install -g @anthropic-ai/claude-code`, then run `claude`).
+  The folder is found automatically at `Documents/jarvis-galaxy` (next to `Documents/openfield`); otherwise set
+  it with ⚙ on the panel or `JARVIS_GALAXY_DIR`.
+- **Agents:** Markdown agent files (front matter `name`, `description`) in the galaxy's `sub…` folders
+  (`subagents/`, `sub-agents/`, …) and `.claude/agents/` show up in the picker; choosing one routes the message to it.
+- **Memory:** one ongoing thread (Claude Code `--resume`), kept across restarts. **New thread** starts fresh.
+  Every question and reply also lands in the live feed.
+- **Permissions:** read-only by default (headless Claude Code refuses anything that needs approval). List the
+  tools you want it to use under ⚙ → Allowed tools, e.g. `Read,Grep,Edit,Bash(git status)`.
+- **Who can reach it:** only this computer by default. Tick "Answer other devices on my network" to use it
+  from your phone; that setting can only be changed from this computer.
+- Also in the ⌘K palette: **Ask Claude (War Room line)**.
 
 ## Privacy & safety notes
 
