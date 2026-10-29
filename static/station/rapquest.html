@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField Station · RapQuest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/station/station.css">
+<style>
+.layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 18px; }
+@media (max-width: 960px) { .layout { grid-template-columns: 1fr; } }
+.songlist .song { display: block; text-decoration: none; padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; }
+.songlist .song:hover, .songlist .song.on { border-color: var(--line-2); background: var(--panel-2); }
+.transport { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 10px; border-radius: 12px; background: #0a0c10; border: 1px solid var(--line); margin-bottom: 14px; }
+.transport .lcd { font-family: var(--mono); background: #000; color: var(--volt); padding: 6px 10px; border-radius: 8px; min-width: 118px; text-align: center; border: 1px solid #222; }
+.transport input[type=number] { width: 78px; padding: 6px 8px; }
+.transport select { width: auto; padding: 6px 8px; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 14px; }
+.tabs button { background: none; border: none; padding: 10px 14px; cursor: pointer; color: var(--dim); font-weight: 700; border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--text); border-color: var(--volt); }
+canvas.wave { width: 100%; height: 56px; display: block; border-radius: 8px; background: #0a0c10; margin-bottom: 10px; }
+.comp-grid { display: grid; gap: 4px; font-size: 12.5px; }
+.comp-row { display: grid; gap: 4px; }
+.take { padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg-2); cursor: pointer; line-height: 1.35; }
+.take:hover { border-color: var(--dim); }
+.take.pick { border-color: var(--volt); background: rgba(234,255,0,.08); }
+.take small { display: block; color: var(--mute); font-family: var(--mono); font-size: 10px; }
+.hist { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin: 10px 0; }
+.hist i { flex: 1; background: linear-gradient(var(--cyan), var(--volt)); border-radius: 4px 4px 0 0; min-height: 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Write · Remix · Lock the pocket</div>
+  <h1 class="big" style="margin:6px 0 20px">RapQuest</h1>
+  <div class="layout">
+    <aside class="stack">
+      <button class="btn primary" id="new-song">+ New song</button>
+      <div class="panel songlist" id="songs" style="padding:8px"></div>
+    </aside>
+    <main id="work"><div class="empty">Pick a song, or paste lyrics into a new one. One line = one bar.</div></main>
+  </div>
+</div>
+
+<div class="modal-bg" id="ns-bg"></div>
+<div class="modal" id="ns">
+  <button class="btn small ghost x" onclick="closeNew()">✕</button>
+  <div class="eyebrow">New song</div><h2 style="margin:4px 0 14px">Drop the lyric sheet</h2>
+  <div class="grid g2"><label class="field">Title <input type="text" id="ns-title"></label>
+    <label class="field">BPM <div class="row" style="flex-wrap:nowrap"><input type="number" id="ns-bpm" value="90" min="40" max="220"><button class="btn small" id="ns-tap">Tap</button></div></label></div>
+  <label class="field" style="margin-top:12px">Lyrics (markdown ok: ### Section, **SPEAKER:**, *(directions)*)<textarea id="ns-lyrics" style="min-height:260px"></textarea></label>
+  <div class="row" style="margin-top:12px">
+    <button class="btn primary" id="ns-create">Create</button>
+    <label class="btn ghost">Import .md / .txt / REAPER .rpp<input type="file" id="ns-file" accept=".md,.txt,.rpp" hidden></label>
+    <span class="small mute" id="ns-msg"></span>
+  </div>
+</div>
+
+<script src="/static/station/station.js"></script>
+<script>
+const S = Station; S.shell('RapQuest');
+let songs = [], song = null, personas = [], transport = null, view = { tab: 'original', remix: null, swing: 0 };
+const chosenPersona = S.qs('persona');
+
+/* ---------------- songs */
+async function loadSongs(selectId) {
+  songs = await S.get('/api/songs');
+  S.$('#songs').innerHTML = songs.map(s => `<a class="song ${song && s.id === song.id ? 'on' : ''}" data-id="${s.id}"><b>${S.esc(s.title)}</b><div class="small mute mono">${s.bpm} BPM · ${s.remix_count} version(s)</div></a>`).join('') || '<div class="small mute" style="padding:8px">No songs yet.</div>';
+  S.$$('#songs .song').forEach(a => a.onclick = () => openSong(+a.dataset.id));
+  if (selectId) openSong(selectId);
+}
+async function openSong(id, opts = {}) {
+  song = await S.get('/api/songs/' + id);
+  S.$$('#songs .song').forEach(a => a.classList.toggle('on', +a.dataset.id === id));
+  history.replaceState(null, '', '?song=' + id);
+  if (transport) transport.stop();
+  const ba = song.beat_analysis || {};
+  transport = new S.Transport({ bpm: opts.bpm || song.bpm, offset: ba.offset || 0, onTick: tick });
+  if (song.beat_file) transport.load('/api/beats/' + song.beat_file, ba.bpm || song.bpm);
+  renderWork();
+  if (opts.remix) openRemix(opts.remix);
+}
+function tick(p) {
+  const feelHalf = view.tab === 'remix' && view.remix && view.remix.feel === 'half';
+  const bar = feelHalf ? Math.floor(p.bar / 2) : p.bar;
+  const step = feelHalf ? Math.floor(((p.bar % 2) * 16 + p.step) / 2) : p.step;
+  S.$('#lcd').textContent = `${String(p.bar + 1).padStart(3, '0')}.${Math.floor(p.step / 4) + 1}.${(p.step % 4) + 1}`;
+  const root = S.$('#flow-live'); if (root) S.flowPlayhead(root, bar, step);
+}
+
+/* ---------------- workspace */
+function renderWork() {
+  const ba = song.beat_analysis || {};
+  S.$('#work').innerHTML = `
+    <div class="row" style="margin-bottom:10px"><h2 style="flex:1">${S.esc(song.title)}</h2>
+      <span class="tag">${song.bpm} BPM original</span>${ba.bpm ? `<span class="tag">beat ${ba.bpm} BPM</span>` : ''}
+      <button class="btn small danger" id="del-song">Delete</button></div>
+    <div class="transport">
+      <button class="btn small primary" id="t-play">▶ Play</button><button class="btn small" id="t-stop">■</button><button class="btn small" id="t-rew">⏮</button>
+      <span class="lcd" id="lcd">001.1.1</span>
+      <label class="small dim">Tempo <input type="number" id="t-bpm" value="${transport.bpm}" min="40" max="220" step="0.5"></label>
+      <button class="btn small" id="t-tap">Tap</button>
+      <label class="small dim"><input type="checkbox" id="t-metro"> Click</label>
+      <label class="small dim">Count-in <select id="t-count"><option value="0">off</option><option value="4">1 bar</option><option value="8">2 bars</option></select></label>
+      <label class="small dim">Loop <input type="number" id="t-l1" min="1" placeholder="from" style="width:62px"> – <input type="number" id="t-l2" min="1" placeholder="to" style="width:62px"></label>
+      <label class="small dim">Swing <input type="range" id="t-swing" min="0" max="0.6" step="0.05" value="${view.swing}" style="width:80px"></label>
+      <label class="btn small ghost">${song.beat_file ? 'Replace beat' : 'Load beat'}<input type="file" id="t-beat" accept="audio/*" hidden></label>
+      <span class="small mute" id="t-msg">${song.beat_file ? (transport.bpm !== (ba.bpm || song.bpm) ? 'Warping beat to tempo (pitch kept)' : '') : 'No beat: metronome only'}</span>
+    </div>
+    ${ba.waveform ? '<canvas class="wave" id="wave"></canvas>' : ''}
+    ${ba.alternatives?.length ? `<div class="row small dim" style="margin:-4px 0 10px">Detected ${ba.bpm} BPM (confidence ${Math.round((ba.confidence || 0) * 100)}%). Half/double? ${ba.alternatives.map(a => `<span class="chip click" data-alt="${a}">${a}</span>`).join('')}</div>` : ''}
+    <div class="tabs">${[['original', 'Original'], ['remix', 'Remix'], ['comp', 'Takes & Comp'], ['pocket', 'Pocket Trainer']].map(([k, l]) => `<button data-tab="${k}" class="${view.tab === k ? 'on' : ''}">${l}</button>`).join('')}</div>
+    <div id="tab"></div>`;
+  if (ba.waveform) drawWave(S.$('#wave'), ba.waveform);
+  S.$('#t-play').onclick = () => { transport.metro = S.$('#t-metro').checked; transport.countIn = +S.$('#t-count').value; transport.play(); };
+  S.$('#t-stop').onclick = () => transport.stop();
+  S.$('#t-rew').onclick = () => transport.rewind();
+  S.$('#t-bpm').onchange = e => { transport.setBpm(+e.target.value); S.$('#t-msg').textContent = song.beat_file ? 'Warping beat to tempo (pitch kept)' : ''; if (view.tab === 'original') renderOriginal(); };
+  S.$('#t-tap').onclick = () => { const b = S.tapTempo(); if (b) { S.$('#t-bpm').value = b; S.$('#t-bpm').onchange({ target: S.$('#t-bpm') }); } };
+  S.$('#t-metro').onchange = e => transport.metro = e.target.checked;
+  const setLoop = () => { const a = +S.$('#t-l1').value, b = +S.$('#t-l2').value; transport.loop = a && b && b >= a ? [a - 1, b - 1] : null; };
+  S.$('#t-l1').onchange = setLoop; S.$('#t-l2').onchange = setLoop;
+  S.$('#t-swing').oninput = e => { view.swing = +e.target.value; renderTab(); };
+  S.$('#t-beat').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return; S.$('#t-msg').textContent = 'Analysing beat…';
+    const fd = new FormData(); fd.append('audio', f);
+    try { await S.api(`/api/songs/${song.id}/beat`, { method: 'POST', body: fd }); openSong(song.id); } catch (err) { S.$('#t-msg').textContent = err.message; }
+  };
+  S.$$('[data-alt]').forEach(c => c.onclick = async () => { const ba2 = { ...song.beat_analysis, bpm: +c.dataset.alt }; await S.put(`/api/songs/${song.id}`, { beat_analysis: ba2 }); song.beat_analysis = ba2; transport.sourceBpm = ba2.bpm; transport.warp(); S.toast('Beat grid set to ' + c.dataset.alt + ' BPM'); });
+  S.$$('.tabs button').forEach(b => b.onclick = () => { view.tab = b.dataset.tab; S.$$('.tabs button').forEach(x => x.classList.toggle('on', x === b)); renderTab(); });
+  S.$('#del-song').onclick = async () => { if (!confirm('Delete this song and its versions?')) return; await S.del('/api/songs/' + song.id); song = null; S.$('#work').innerHTML = '<div class="empty">Deleted.</div>'; loadSongs(); };
+  renderTab();
+}
+function drawWave(c, peaks) {
+  const g = c.getContext('2d'); c.width = c.clientWidth * 2; c.height = 112; const mid = c.height / 2;
+  g.fillStyle = '#EAFF00'; const w = c.width / peaks.length;
+  peaks.forEach((p, i) => { const h = Math.max(1, p * mid * .95); g.globalAlpha = .35 + p * .6; g.fillRect(i * w, mid - h, Math.max(1, w - .5), h * 2); });
+}
+function renderTab() { ({ original: renderOriginal, remix: renderRemix, comp: renderComp, pocket: renderPocket })[view.tab](); }
+
+/* ---------------- original */
+async function renderOriginal() {
+  const bpm = +S.$('#t-bpm').value || song.bpm;
+  S.$('#tab').innerHTML = `<div class="grid g2" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+    <div><div class="row small dim" style="margin-bottom:8px" id="sum"></div><div id="flow-live"></div></div>
+    <div class="stack"><label class="field">Lyric sheet (edits re-analyse live)<textarea id="ed" style="min-height:420px">${S.esc(song.lyrics)}</textarea></label>
+      <div class="row"><button class="btn small primary" id="save">Save lyrics</button><span class="small mute" id="save-msg"></span></div>
+      <div class="panel" style="padding:12px"><div class="small dim">Rhyme threads</div><div id="colored" style="margin-top:6px"></div></div></div></div>`;
+  const draw = async (text) => {
+    const a = await S.post('/api/flow/analyze', { text, bpm, persona: chosenPersona || '' });
+    S.$('#flow-live').innerHTML = S.flowHTML(a, { swing: view.swing });
+    S.$('#colored').innerHTML = S.lyricHTML(a);
+    const s = a.summary; S.$('#sum').innerHTML = `<span class="tag">${s.bars} bars</span><span class="tag">${s.avg_syllables} syl/bar</span><span class="tag">${s.avg_sps}/s · ${s.zone}</span><span class="tag">${a.families} rhyme threads</span>${s.crowded ? `<span class="tag verdict-crowded">${s.crowded} crowded</span>` : ''}<span class="tag">${s.dictionary === 'cmu' ? 'CMU dictionary' : 'spelling heuristic'}</span>`;
+  };
+  draw(song.lyrics);
+  S.$('#ed').oninput = S.debounce(e => draw(e.target.value), 400);
+  S.$('#save').onclick = async () => { song = { ...song, ...(await S.put('/api/songs/' + song.id, { lyrics: S.$('#ed').value })) }; S.$('#save-msg').textContent = 'Saved.'; };
+}
+
+/* ---------------- remix */
+async function renderRemix() {
+  if (!personas.length) personas = (await S.get('/api/personas')).filter(p => ['rapper', 'coach'].includes(p.role));
+  const versions = song.remixes || [];
+  S.$('#tab').innerHTML = `<div class="panel" style="margin-bottom:14px">
+      <div class="grid g4">
+        <label class="field">Persona <select id="rx-p">${personas.map(p => `<option value="${p.id}" ${p.id === chosenPersona ? 'selected' : ''}>${S.esc(p.name)}</option>`).join('')}</select></label>
+        <label class="field">New beat BPM <input type="number" id="rx-bpm" value="${S.$('#t-bpm').value}" min="40" max="220"></label>
+        <label class="field">Feel <select id="rx-feel"><option value="">Auto</option><option value="normal">Normal</option><option value="half">Half-time</option><option value="double">Double-time</option></select></label>
+        <label class="field">New beat (optional) <input type="file" id="rx-beat" accept="audio/*"></label>
+      </div>
+      <label class="field" style="margin-top:10px">Direction <input type="text" id="rx-dir" placeholder="e.g. keep the Marcus story, make it darker, more internals"></label>
+      <div class="row" style="margin-top:10px"><button class="btn primary" id="rx-go">Remix it</button><button class="btn" id="rx-fit">Fit check only</button><span class="small mute" id="rx-msg"></span></div>
+    </div>
+    <div class="row" style="margin-bottom:10px">${versions.map(v => `<span class="chip click ${view.remix && view.remix.id === v.id ? 'on' : ''}" data-v="${v.id}">${S.esc(v.title)} · ${v.bpm} BPM</span>`).join('') || '<span class="small mute">No versions yet.</span>'}</div>
+    <div id="rx-view"></div>`;
+  S.$$('[data-v]').forEach(c => c.onclick = () => openRemix(+c.dataset.v));
+  S.$('#rx-beat').onchange = async e => {
+    const f = e.target.files[0]; if (!f) return; S.$('#rx-msg').textContent = 'Detecting tempo…';
+    const fd = new FormData(); fd.append('audio', f); fd.append('hint_bpm', S.$('#rx-bpm').value);
+    const r = await S.api('/api/beats', { method: 'POST', body: fd }); view.newBeat = r;
+    if (r.analysis.bpm) S.$('#rx-bpm').value = r.analysis.bpm;
+    S.$('#rx-msg').textContent = `New beat: ${r.analysis.bpm} BPM` + (r.analysis.alternatives?.length ? ` (or ${r.analysis.alternatives.join(' / ')})` : '');
+  };
+  S.$('#rx-fit').onclick = async () => {
+    const r = await S.get(`/api/songs/${song.id}/fit?bpm=${S.$('#rx-bpm').value}&feel=${S.$('#rx-feel').value}&persona=${S.$('#rx-p').value}`);
+    showComparison(r, null);
+  };
+  S.$('#rx-go').onclick = async () => {
+    const btn = S.$('#rx-go'); btn.disabled = true; S.$('#rx-msg').textContent = 'The persona is rewriting every bar for the new pocket…';
+    try {
+      const r = await S.post(`/api/songs/${song.id}/remix`, { persona: S.$('#rx-p').value, bpm: +S.$('#rx-bpm').value, feel: S.$('#rx-feel').value,
+        direction: S.$('#rx-dir').value, beat_file: view.newBeat?.beat_file || '', beat_analysis: view.newBeat?.analysis });
+      song.remixes = [r, ...(song.remixes || [])]; S.confetti(80); S.tone([523, 784, 1047]);
+      openRemix(r.id, r);
+    } catch (e) { S.$('#rx-msg').textContent = e.message; }
+    btn.disabled = false;
+  };
+  if (view.remix) openRemix(view.remix.id, view.remix);
+}
+async function openRemix(id, data) {
+  view.tab = 'remix';
+  const r = data || await S.get('/api/remixes/' + id); view.remix = r;
+  if (!S.$('#rx-view')) { S.$$('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.tab === 'remix')); return renderRemix(); }
+  S.$$('[data-v]').forEach(c => c.classList.toggle('on', +c.dataset.v === id));
+  // Transport: new beat if there is one, else warp the original beat to the remix tempo.
+  transport.stop();
+  const nb = r.beat_analysis || {};
+  transport = new S.Transport({ bpm: r.bpm, offset: (r.beat_file ? nb.offset : (song.beat_analysis || {}).offset) || 0, onTick: tick });
+  if (r.beat_file) transport.load('/api/beats/' + r.beat_file, nb.bpm || r.bpm);
+  else if (song.beat_file) transport.load('/api/beats/' + song.beat_file, (song.beat_analysis || {}).bpm || song.bpm);
+  S.$('#t-bpm').value = r.bpm;
+  showComparison(r.comparison, r);
+}
+function showComparison(c, r) {
+  const a = c.after.summary, b = c.before.summary;
+  S.$('#rx-view').innerHTML = `
+    <div class="row" style="margin-bottom:10px"><span class="tag">${c.before.bpm} → ${c.after.bpm} BPM</span><span class="tag">${c.feel} feel${c.feel !== c.suggested_feel ? ' (suggested ' + c.suggested_feel + ')' : ''}</span>
+      <span class="tag">${b.avg_sps}/s → ${a.avg_sps}/s</span><span class="tag verdict-fits">${a.fits} fit</span><span class="tag verdict-crowded">${a.crowded} crowded</span><span class="tag verdict-sparse">${a.sparse} sparse</span></div>
+    <div class="grid" style="grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)">
+      <div><div class="small dim" style="margin-bottom:6px">${r ? 'Remix on the new grid (ghost = original placement)' : 'Original lyrics on the new grid'}</div><div id="flow-live"></div></div>
+      <div class="stack">${r ? `<label class="field">Remix lyrics (editable)<textarea id="rx-ed" style="min-height:380px">${S.esc(r.lyrics)}</textarea></label>
+        <div class="row"><button class="btn small primary" id="rx-save">Save edits</button><button class="btn small danger" id="rx-del">Delete version</button></div>` : '<p class="small dim">Run a remix to have a persona rewrite the bars to fit.</p>'}</div>
+    </div>`;
+  S.$('#flow-live').innerHTML = S.flowHTML(c.after, { ghost: c.before, swing: view.swing });
+  if (r) {
+    S.$('#rx-save').onclick = async () => { const nr = await S.put('/api/remixes/' + r.id, { lyrics: S.$('#rx-ed').value }); view.remix = nr; showComparison(nr.comparison, nr); S.toast('Remix updated'); };
+    S.$('#rx-del').onclick = async () => { if (!confirm('Delete this version?')) return; await S.del('/api/remixes/' + r.id); view.remix = null; openSong(song.id); };
+    S.$('#rx-ed').oninput = S.debounce(async e => { const an = await S.post('/api/flow/analyze', { text: e.target.value, bpm: r.bpm, feel: r.feel, persona: r.persona_id }); S.$('#flow-live').innerHTML = S.flowHTML(an, { ghost: c.before, swing: view.swing }); }, 500);
+  }
+}
+
+/* ---------------- takes & comp (REAPER swipe comping) */
+async function renderComp() {
+  const versions = [{ id: 0, title: 'Original', lyrics: song.lyrics, bpm: song.bpm }, ...(song.remixes || [])];
+  const bars = versions.map(v => v.lyrics.split('\n').filter(l => l.trim() && !/^\s*(#|\*\*[^*]+:\*\*\s*$|\*\(|---)/.test(l)));
+  const n = Math.max(...bars.map(b => b.length));
+  view.picks = view.picks && view.picks.length === n ? view.picks : Array(n).fill(0);
+  S.$('#tab').innerHTML = `<p class="small dim" style="margin-bottom:10px">Every version is a take lane. Click the best line for each bar; the comp keeps your choice per bar.</p>
+    <div class="comp-grid" id="comp">${Array.from({ length: n }, (_, i) => `<div class="comp-row" style="grid-template-columns:34px repeat(${versions.length},minmax(0,1fr))"><div class="small mute mono" style="padding-top:8px">${i + 1}</div>
+      ${versions.map((v, vi) => `<div class="take ${view.picks[i] === vi ? 'pick' : ''}" data-bar="${i}" data-v="${vi}"><small>${S.esc(vi === 0 ? 'Original' : v.title.replace(song.title, '').trim())}</small>${S.esc(bars[vi][i] || '—')}</div>`).join('')}</div>`).join('')}</div>
+    <div class="row" style="margin-top:14px"><label class="field" style="flex:1">Comp BPM <input type="number" id="comp-bpm" value="${(song.remixes || [])[0]?.bpm || song.bpm}"></label><button class="btn primary" id="comp-save">Save comp as new version</button></div>
+    <div id="flow-live" style="margin-top:14px"></div>`;
+  const preview = async () => {
+    const text = view.picks.map((vi, i) => bars[vi][i] || '').filter(Boolean).join('\n');
+    S.$('#flow-live').innerHTML = S.flowHTML(await S.post('/api/flow/analyze', { text, bpm: +S.$('#comp-bpm').value }), { swing: view.swing });
+    return text;
+  };
+  S.$$('.take').forEach(t => t.onclick = () => { view.picks[+t.dataset.bar] = +t.dataset.v; S.$$(`.take[data-bar="${t.dataset.bar}"]`).forEach(x => x.classList.toggle('pick', x === t)); preview(); });
+  S.$('#comp-bpm').onchange = preview;
+  S.$('#comp-save').onclick = async () => { const text = await preview(); const r = await S.post(`/api/songs/${song.id}/comp`, { lyrics: text, bpm: +S.$('#comp-bpm').value }); song.remixes = [r, ...(song.remixes || [])]; S.toast('Comp saved', 'star'); S.tone([784, 1175]); };
+  preview();
+}
+
+/* ---------------- pocket trainer (Bible drill 5.2) */
+function renderPocket() {
+  S.$('#tab').innerHTML = `<div class="grid g2">
+    <div class="panel"><h3>Pocket Trainer</h3><p class="small dim" style="margin:6px 0 12px">Rap a few bars over the beat (or the click). We find every syllable and measure it against the 16th-note grid: ahead, behind, or dead on. Bible drill 5.2: try it all three ways.</p>
+      <div class="row"><button class="btn primary" id="pk-rec">● Record take</button><button class="btn" id="pk-stop" disabled>■ Stop & analyse</button></div>
+      <label class="field" style="margin-top:12px">Latency compensation (ms) <input type="number" id="pk-lat" value="${localStorage.getItem('pk-lat') || 0}"></label>
+      <p class="small mute" style="margin-top:6px">Use headphones so the mic only hears you. Recording starts after a 1-bar count-in.</p></div>
+    <div class="panel" id="pk-out"><div class="empty">No take yet.</div></div></div>`;
+  let rec;
+  S.$('#pk-rec').onclick = async () => {
+    try { rec = new S.Recorder(); await rec.start(); } catch (e) { S.toast('Microphone blocked: ' + e.message); return; }
+    S.$('#pk-rec').disabled = true; S.$('#pk-stop').disabled = false;
+    transport.metro = !song.beat_file || S.$('#t-metro').checked; transport.countIn = 4; transport.rewind();
+    rec.startTime = performance.now(); await transport.play(); rec.beatStart = (performance.now() - rec.startTime) / 1000;
+  };
+  S.$('#pk-stop').onclick = async () => {
+    transport.stop(); const blob = await rec.stop(); S.$('#pk-rec').disabled = false; S.$('#pk-stop').disabled = true;
+    localStorage.setItem('pk-lat', S.$('#pk-lat').value);
+    const fd = new FormData(); fd.append('audio', blob, 'take.webm'); fd.append('bpm', transport.bpm);
+    fd.append('offset', rec.beatStart + (transport.audio ? transport.offset / transport.audio.playbackRate : 0)); fd.append('latency_ms', S.$('#pk-lat').value || 0);
+    S.$('#pk-out').innerHTML = '<div class="empty">Listening back…</div>';
+    try {
+      const r = await S.api('/api/pocket', { method: 'POST', body: fd });
+      if (!r.ok) { S.$('#pk-out').innerHTML = `<div class="empty">${S.esc(r.message)}</div>`; return; }
+      const max = Math.max(...r.histogram, 1);
+      S.$('#pk-out').innerHTML = `<div class="eyebrow">Verdict</div><h2 style="margin:4px 0">${S.esc(r.verdict)}</h2>
+        <div class="row small"><span class="tag">avg ${r.mean_ms > 0 ? '+' : ''}${r.mean_ms} ms</span><span class="tag">spread ${r.spread_ms} ms</span><span class="tag">${Math.round(r.tight * 100)}% within 30 ms</span><span class="tag">${r.syllables} syllables</span></div>
+        <div class="hist">${r.histogram.map(h => `<i style="height:${h / max * 100}%"></i>`).join('')}</div>
+        <div class="row small mute" style="justify-content:space-between"><span>−60 ms ahead</span><span>on the grid</span><span>+60 ms behind</span></div>`;
+      S.celebrate(r.events || []);
+    } catch (e) { S.$('#pk-out').innerHTML = `<div class="bubble err">${S.esc(e.message)}</div>`; }
+  };
+}
+
+/* ---------------- new song modal + REAPER import */
+const openNew = () => { S.$('#ns-bg').classList.add('open'); S.$('#ns').classList.add('open'); };
+window.closeNew = () => { S.$('#ns-bg').classList.remove('open'); S.$('#ns').classList.remove('open'); };
+S.$('#new-song').onclick = openNew; S.$('#ns-bg').onclick = closeNew;
+S.$('#ns-tap').onclick = () => { const b = S.tapTempo(); if (b) S.$('#ns-bpm').value = b; };
+S.$('#ns-file').onchange = async e => {
+  const f = e.target.files[0]; if (!f) return; const text = await f.text();
+  if (f.name.toLowerCase().endsWith('.rpp')) {
+    const tempo = text.match(/^\s*TEMPO\s+([\d.]+)/m); if (tempo) S.$('#ns-bpm').value = (+tempo[1]).toFixed(1).replace(/\.0$/, '');
+    const regions = [...text.matchAll(/^\s*MARKER\s+\d+\s+([\d.]+)\s+"?([^"\n]*?)"?\s+1\b/gm)].map(m => m[2]).filter(Boolean);
+    const markers = regions.length ? regions : [...text.matchAll(/^\s*MARKER\s+\d+\s+[\d.]+\s+"?([^"\n]*?)"?(\s|$)/gm)].map(m => m[1]).filter(Boolean);
+    if (!S.$('#ns-lyrics').value.trim() && markers.length) S.$('#ns-lyrics').value = [...new Set(markers)].map(m => `### ${m}\n`).join('\n');
+    if (!S.$('#ns-title').value) S.$('#ns-title').value = f.name.replace(/\.rpp$/i, '').replace(/_/g, ' ');
+    S.$('#ns-msg').textContent = `REAPER project: ${tempo ? tempo[1] + ' BPM' : 'no tempo found'}, ${markers.length} region(s). Paste the lyrics under each section.`;
+  } else {
+    S.$('#ns-lyrics').value = text; const t = text.match(/(\d{2,3}(?:\.\d+)?)\s*BPM/i); if (t) S.$('#ns-bpm').value = t[1];
+    const h = text.match(/^#\s+(.+)/m); if (h && !S.$('#ns-title').value) S.$('#ns-title').value = h[1].replace(/[^\w\s'-]/g, '').trim();
+  }
+};
+S.$('#ns-create').onclick = async () => {
+  try { const s = await S.post('/api/songs', { title: S.$('#ns-title').value, bpm: +S.$('#ns-bpm').value, lyrics: S.$('#ns-lyrics').value }); closeNew(); loadSongs(s.id); }
+  catch (e) { S.$('#ns-msg').textContent = e.message; }
+};
+
+S.addCommands([{ label: 'RapQuest: new song', run: openNew }, { label: 'RapQuest: tap tempo', run: () => S.$('#t-tap')?.click() }, { label: 'RapQuest: play / stop', run: () => transport && (transport.playing ? transport.stop() : S.$('#t-play').click()) }]);
+document.addEventListener('keydown', e => { if (e.code === 'Space' && !/INPUT|TEXTAREA|SELECT/.test(document.activeElement.tagName) && transport) { e.preventDefault(); transport.playing ? transport.stop() : S.$('#t-play').click(); } });
+const remixQ = S.qs('remix'), songQ = S.qs('song');
+if (remixQ) S.get('/api/remixes/' + remixQ).then(r => { loadSongs(); openSong(r.song_id, { remix: r.id, bpm: r.bpm }); });
+else loadSongs(songQ ? +songQ : null);
+</script>
+</body>
+</html>

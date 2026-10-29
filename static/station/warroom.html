@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField Station · War Room</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/station/station.css">
+<style>
+body { --accent: var(--red); }
+.sys { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.sys > div { padding: 10px 12px; border-radius: 10px; background: var(--bg-2); border: 1px solid var(--line); font-size: 12.5px; display: flex; gap: 8px; align-items: center; }
+.led { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.led.ok { background: var(--green); box-shadow: 0 0 8px var(--green); }
+.led.bad { background: var(--red); box-shadow: 0 0 8px var(--red); }
+.led.opt { background: var(--mute); }
+.feed { font-family: var(--mono); font-size: 12px; max-height: 420px; overflow: auto; display: flex; flex-direction: column-reverse; gap: 3px; }
+.feed div { padding: 4px 6px; border-radius: 6px; }
+.feed div.new { background: rgba(255,23,68,.08); animation: rise .3s; }
+.council { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 10px; margin-top: 12px; }
+.council .panel { padding: 12px; }
+.council .panel .bubble { max-width: none; background: transparent; border: none; padding: 0; font-size: 13px; }
+.stat { font-family: var(--display); font-weight: 900; font-size: 2rem; line-height: 1; }
+#claude { border-top: 3px solid #d97757; }
+#cl-status, .sys > div > span { overflow-wrap: anywhere; min-width: 0; }
+#cl-log { max-height: 380px; overflow: auto; display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+#cl-log .m { padding: 8px 10px; border-radius: 10px; font-size: 13.5px; line-height: 1.5; overflow-wrap: anywhere; }
+#cl-log .m.user { background: var(--bg-2); align-self: flex-end; max-width: 88%; }
+#cl-log .m.claude { border: 1px solid var(--line); }
+#cl-log .m .who { font-family: var(--mono); font-size: 11px; color: #d97757; margin-bottom: 3px; }
+#cl-log .m pre { white-space: pre-wrap; }
+#cl-tools { font-family: var(--mono); font-size: 11px; }
+#cl-cfg label { display: block; font-size: 12px; margin-top: 8px; }
+#cl-cfg input[type=text] { width: 100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">In the back</div>
+  <div class="row" style="margin:6px 0 20px"><h1 class="big" style="flex:1">War Room</h1><button class="btn primary" id="brief">Jarvis, brief me</button></div>
+  <div class="grid g4" id="stats" style="margin-bottom:16px"></div>
+  <div class="grid" style="grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)">
+    <div class="stack">
+      <section class="panel"><div class="panel-head"><h3>Systems</h3><button class="btn small ghost" id="re">Recheck</button></div><div class="sys" id="sys"></div></section>
+      <section class="panel"><div class="panel-head"><h3>The council</h3><span class="small mute">Ask the whole crew at once</span></div>
+        <div class="row" style="flex-wrap:nowrap"><input type="text" id="cq" placeholder="e.g. Should the hook come before verse one? Pitch me a concept for track 3."><button class="btn primary" id="cgo">Convene</button></div>
+        <div class="council" id="council"></div></section>
+      <section class="panel" id="brief-box" hidden><div class="panel-head"><h3>Briefing</h3></div><div id="brief-chat"></div></section>
+    </div>
+    <div class="stack">
+      <section class="panel" id="claude">
+        <div class="panel-head"><h3><span class="led opt" id="cl-led" style="display:inline-block;margin-right:6px"></span>Claude line</h3>
+          <span class="row" style="gap:6px"><button class="btn small ghost" id="cl-new" title="Start a fresh thread">New thread</button><button class="btn small ghost" id="cl-gear" title="Settings">⚙</button></span></div>
+        <div class="small mute" id="cl-status">Checking Claude Code…</div>
+        <div id="cl-cfg" hidden class="small" style="margin-top:6px">
+          <label>jarvis-galaxy folder <input type="text" id="cl-dir" placeholder="auto: Documents/jarvis-galaxy"></label>
+          <label>Allowed tools (blank = read-only; e.g. <code>Read,Grep,Edit,Bash(git status)</code>) <input type="text" id="cl-tools-in"></label>
+          <label>Model (blank = Claude Code default) <input type="text" id="cl-model" placeholder="e.g. opus"></label>
+          <label><input type="checkbox" id="cl-lan"> Answer other devices on my network (phone, laptop)</label>
+          <div id="cl-folders" class="mute" style="margin-top:6px"></div>
+          <button class="btn small primary" id="cl-save" style="margin-top:8px">Save</button>
+        </div>
+        <div id="cl-log"></div>
+        <div id="cl-tools" class="mute"></div>
+        <div class="row" style="flex-wrap:nowrap;gap:6px;margin-top:6px">
+          <select id="cl-agent" title="Who answers" style="max-width:38%"><option value="">Claude</option></select>
+          <input type="text" id="cl-q" placeholder="Message Claude (runs on this PC in jarvis-galaxy)" style="flex:1">
+          <button class="btn primary" id="cl-go">Send</button>
+        </div>
+      </section>
+      <section class="panel"><div class="panel-head"><h3>Live feed</h3><span class="pill"><span class="dot ok"></span>LIVE</span></div><div class="feed" id="feed"></div></section>
+      <section class="panel"><h3>Video jobs</h3><div id="jobs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+      <section class="panel"><h3>Songs & versions</h3><div id="songs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+      <section class="panel"><h3>Listening labs</h3><div id="labs" class="stack small" style="margin-top:8px;gap:4px"></div></section>
+    </div>
+  </div>
+</div>
+<script src="/static/station/station.js"></script>
+<script>
+const S = Station; S.shell('War Room');
+const LABELS = { ffmpeg: ['ffmpeg', 1], rubberband: ['Rubber Band (+3 pitch)', 1], demucs: ['Demucs vocals', 0], torch: ['PyTorch (GPU)', 0], cmudict: ['CMU dictionary', 0], enhancor_key: ['Enhancor key', 0], replicate_key: ['Replicate key', 0], spotify: ['Spotify', 0], bible: ['Rap Bible', 1] };
+let lastEvent = 0;
+async function load() {
+  const b = await S.get('/api/warroom');
+  const a = b.academy, f = b.forge, l = b.systems.llm;
+  S.$('#stats').innerHTML = [[a.rank.name, `${a.xp} XP · level ${a.level}`], [a.bars_written, 'bars written'], [b.db.songs + ' / ' + b.db.remixes, 'songs / versions'], [`${f.answered}/${f.need_answers}`, 'Forge answers']]
+    .map(([v, k]) => `<div class="panel"><div class="stat">${S.esc(v)}</div><div class="small dim">${S.esc(k)}</div></div>`).join('');
+  let local = null; try { local = await S.get('/local/status'); } catch (_) {}
+  S.$('#sys').innerHTML = `<div><span class="led ${l.ok ? 'ok' : 'bad'}"></span><span><b>LLM</b> ${S.esc(l.provider)} · ${S.esc(l.model || '?')}<br><span class="mute">${S.esc(l.detail || '')}</span></span></div>`
+    + (local ? `<div><span class="led ${local.ok ? 'ok' : 'opt'}"></span><span><b>ComfyUI</b> ${local.ok ? S.esc(local.device || 'online') : 'offline'}<br><span class="mute">${local.workflows.length} workflow(s)</span></span></div>` : '')
+    + Object.entries(LABELS).map(([k, [name, req]]) => `<div><span class="led ${b.systems[k] ? 'ok' : req ? 'bad' : 'opt'}"></span>${S.esc(name)}</div>`).join('');
+  S.$('#jobs').innerHTML = b.jobs.map(j => `<div class="row"><span class="tag">${S.esc(j.state || '?')}</span><span style="flex:1">${S.esc((j.status || '').slice(0, 70))}</span><span class="mute">${S.fmtAgo(j.updated)}</span></div>`).join('') || '<span class="mute">No video jobs yet. <a href="/">Open the Studio</a></span>';
+  S.$('#songs').innerHTML = b.songs.map(s => `<a class="row" href="/station/rapquest?song=${s.id}" style="text-decoration:none"><b style="flex:1">${S.esc(s.title)}</b><span class="mono mute">${s.bpm} BPM · ${s.remix_count}v</span></a>`).join('') || '<span class="mute">No songs yet.</span>';
+  S.$('#labs').innerHTML = b.labs.map(x => `<div class="row"><span style="flex:1">${S.esc(x.track.artists.join(', '))} · ${S.esc(x.track.name)}</span><span class="mono">${x.results.total ? x.results.score + '/' + x.results.total : '—'}</span></div>`).join('') || '<span class="mute">No labs yet.</span>';
+  if (!lastEvent) { b.events.forEach(addEvent); }
+  window._personas = b.personas;
+}
+function addEvent(e, fresh) {
+  lastEvent = Math.max(lastEvent, e.id);
+  const el = S.h(`<div class="${fresh ? 'new' : ''}"><span class="mute">${new Date(e.ts * 1000).toLocaleTimeString()}</span> <span style="color:var(--volt)">${S.esc(e.room)}</span> ${S.esc(e.message)}</div>`);
+  S.$('#feed').prepend(el);
+}
+async function live() {
+  // SSE feed of station events (reconnects every few minutes)
+  for (;;) {
+    try {
+      const r = await fetch('/api/events/stream?after=' + lastEvent); const reader = r.body.getReader(); const dec = new TextDecoder(); let buf = '';
+      for (;;) { const { value, done } = await reader.read(); if (done) break; buf += dec.decode(value, { stream: true }); let i;
+        while ((i = buf.indexOf('\n\n')) >= 0) { const chunk = buf.slice(0, i); buf = buf.slice(i + 2); const d = chunk.split('\n').find(x => x.startsWith('data:')); if (d) { const e = JSON.parse(d.slice(5)); if (e.id > lastEvent) { addEvent(e, true); S.tone([1320], 'sine', 0, .03); } } } }
+    } catch (_) {}
+    await new Promise(r => setTimeout(r, 2000));
+  }
+}
+S.$('#re').onclick = load;
+S.$('#cgo').onclick = () => {
+  const q = S.$('#cq').value.trim(); if (!q) return;
+  const crew = (window._personas || []).filter(p => p.id !== 'jarvis');
+  S.$('#council').innerHTML = '';
+  crew.forEach(p => {
+    const box = S.h(`<div class="panel" style="border-top:3px solid ${p.color || '#888'}"><div class="small" style="font-weight:800;color:${p.color}">${S.esc(p.name)}</div><div class="bubble typing" style="margin-top:6px"></div></div>`);
+    S.$('#council').appendChild(box); const b = S.$('.bubble', box); let acc = '';
+    S.stream('/api/chat', { persona_id: p.id, message: q, ephemeral: true }, {
+      delta: d => { acc += d.text; b.textContent = acc; }, error: d => { b.textContent = '⚠ ' + d.message; b.classList.remove('typing'); }, done: () => b.classList.remove('typing'),
+    });
+  });
+};
+S.$('#cq').onkeydown = e => { if (e.key === 'Enter') S.$('#cgo').click(); };
+S.$('#brief').onclick = () => {
+  S.$('#brief-box').hidden = false;
+  const c = S.chatWidget(S.$('#brief-chat'), { persona: 'jarvis', name: 'Jarvis', glyph: 'J', color: 'var(--volt)' });
+  c.send('Brief me: systems, what is in flight, what is blocked, and the one thing I should do next.');
+  S.$('#brief-box').scrollIntoView({ behavior: 'smooth' });
+};
+// ---------------------------------------------------------- Claude line
+const CL = { busy: false };
+function clMsg(role, text, agent) {
+  const el = S.h(`<div class="m ${role === 'user' ? 'user' : 'claude'}">${role === 'user' ? '' : `<div class="who">${S.esc(agent ? '@' + agent : 'Claude')}</div>`}<div class="body"></div></div>`);
+  const body = S.$('.body', el);
+  if (role === 'user') body.textContent = text; else body.innerHTML = S.md(text || '');
+  S.$('#cl-log').appendChild(el); S.$('#cl-log').scrollTop = 1e9; return body;
+}
+async function clStatus() {
+  let st;
+  try { st = await S.get('/api/claude/status'); } catch (e) { S.$('#cl-status').textContent = e.message; S.$('#cl-led').className = 'led bad'; return; }
+  S.$('#cl-led').className = 'led ' + (st.ok ? 'ok' : 'bad');
+  S.$('#cl-status').innerHTML = st.ok
+    ? `${S.esc(st.version || 'Claude Code')} · <span class="mono">${S.esc(st.galaxy)}</span> · ${st.agents.length} agent${st.agents.length === 1 ? '' : 's'}${st.allowed_tools ? ' · tools: ' + S.esc(st.allowed_tools) : ' · read-only'}`
+    : S.esc(st.detail);
+  const sel = S.$('#cl-agent'), keep = sel.value;
+  sel.innerHTML = '<option value="">Claude</option>' + st.agents.map(a => `<option value="${S.esc(a.name)}" title="${S.esc(a.description)}">@${S.esc(a.name)}</option>`).join('');
+  sel.value = keep;
+  S.$('#cl-dir').value = st.galaxy && !S.$('#cl-dir').dataset.touched ? st.galaxy : S.$('#cl-dir').value;
+  S.$('#cl-tools-in').value = st.allowed_tools || ''; S.$('#cl-model').value = st.model || ''; S.$('#cl-lan').checked = st.allow_lan;
+  S.$('#cl-folders').textContent = st.folders.length ? 'Found: ' + st.folders.map(f => `${f.folder} (${f.files} files)`).join(', ') : (st.galaxy ? 'No sub… folders found in jarvis-galaxy.' : '');
+}
+async function clThread() {
+  try { (await S.get('/api/claude/thread')).forEach(m => { if (m.role === 'user' || m.role === 'assistant') clMsg(m.role, m.content, (m.meta || {}).agent); }); } catch (_) {}
+}
+async function clSend() {
+  const q = S.$('#cl-q').value.trim(); if (!q || CL.busy) return;
+  CL.busy = true; S.$('#cl-go').disabled = true; S.$('#cl-q').value = '';
+  const agent = S.$('#cl-agent').value;
+  clMsg('user', (agent ? '@' + agent + ' ' : '') + q);
+  const body = clMsg('claude', '', agent); body.classList.add('typing'); let acc = '';
+  await S.stream('/api/claude/ask', { message: q, agent }, {
+    delta: d => { acc += d.text; body.innerHTML = S.md(acc); S.$('#cl-log').scrollTop = 1e9; },
+    tool: d => { S.$('#cl-tools').textContent = '⚙ using ' + d.text; },
+    error: d => { body.innerHTML = '<span style="color:var(--red)">⚠ ' + S.esc(d.text || d.message) + '</span>'; },
+    done: d => { if (d.text && d.text !== acc) body.innerHTML = S.md(d.text); S.$('#cl-tools').textContent = d.cost ? `$${d.cost.toFixed(3)} · ${d.turns} turn${d.turns === 1 ? '' : 's'}` : ''; },
+  });
+  body.classList.remove('typing'); CL.busy = false; S.$('#cl-go').disabled = false; S.$('#cl-q').focus();
+}
+S.$('#cl-go').onclick = clSend;
+S.$('#cl-q').onkeydown = e => { if (e.key === 'Enter') clSend(); };
+S.$('#cl-gear').onclick = () => { S.$('#cl-cfg').hidden = !S.$('#cl-cfg').hidden; };
+S.$('#cl-dir').oninput = () => { S.$('#cl-dir').dataset.touched = '1'; };
+S.$('#cl-save').onclick = async () => {
+  try {
+    await S.post('/api/claude/config', { galaxy_dir: S.$('#cl-dir').value.trim(), allowed_tools: S.$('#cl-tools-in').value.trim(), model: S.$('#cl-model').value.trim(), allow_lan: S.$('#cl-lan').checked });
+    S.toast('Claude line saved'); clStatus();
+  } catch (e) { S.toast(e.message, 'bad'); }
+};
+S.$('#cl-new').onclick = async () => { await S.post('/api/claude/new'); S.$('#cl-log').innerHTML = ''; S.$('#cl-tools').textContent = ''; S.toast('New thread'); };
+if (location.hash === '#claude') setTimeout(() => { S.$('#claude').scrollIntoView({ behavior: 'smooth' }); S.$('#cl-q').focus(); }, 300);
+clStatus(); clThread(); setInterval(clStatus, 60000);
+load().then(live);
+</script>
+</body>
+</html>

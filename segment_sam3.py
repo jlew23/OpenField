@@ -6,10 +6,30 @@ from PIL import Image
 
 CHUNK_SIZE = 250
 
+
+def save_objects(outputs, path, h, w):
+    """Per-person label map (0 = background, n = SAM 3 object id + 1) so crew swap can tell people apart."""
+    masks = outputs.get("out_binary_masks")
+    ids = outputs.get("out_obj_ids")
+    if masks is None or ids is None:
+        return
+    if not isinstance(masks, np.ndarray):
+        masks = masks.cpu().numpy()
+    ids = ids if isinstance(ids, np.ndarray) else np.asarray(ids.cpu() if hasattr(ids, "cpu") else ids)
+    label = np.zeros((h, w), dtype=np.uint8)
+    for obj, m in zip(ids.tolist(), masks):
+        m = np.asarray(m).astype(bool)
+        if m.shape != label.shape:
+            continue
+        label[m & (label == 0)] = min(254, int(obj) + 1)
+    Image.fromarray(label).save(path)
+
 def run_sam3_chunked(video_path, out_dir, prompt="person", chunk_size=CHUNK_SIZE):
     video_path = Path(video_path).resolve()
     out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
+    obj_dir = out_dir / "objects"
+    obj_dir.mkdir(exist_ok=True)
     
     cap = cv2.VideoCapture(str(video_path))
     total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
@@ -78,6 +98,7 @@ def run_sam3_chunked(video_path, out_dir, prompt="person", chunk_size=CHUNK_SIZE
                 
                 if last_mask is not None:
                     Image.fromarray(last_mask).save(out_dir / f"mask_{start_frame:04d}.png")
+                    save_objects(resp.get("outputs", {}), obj_dir / f"label_{start_frame:04d}.png", h, w)
 
                 # Propagate in this chunk
                 chunk_tracked = 0
@@ -107,6 +128,7 @@ def run_sam3_chunked(video_path, out_dir, prompt="person", chunk_size=CHUNK_SIZE
                         combined = np.zeros((h, w), dtype=np.uint8)
 
                     Image.fromarray(combined).save(out_dir / f"mask_{global_idx:04d}.png")
+                    save_objects(outputs, obj_dir / f"label_{global_idx:04d}.png", h, w)
                     chunk_tracked += 1
                     global_saved_count += 1
                     

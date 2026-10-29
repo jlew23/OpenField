@@ -1,6 +1,6 @@
 ﻿from pathlib import Path
 import threading,uuid,shutil,json,os,time,subprocess,traceback
-from fastapi import FastAPI,UploadFile,File,Form,HTTPException
+from fastapi import FastAPI,UploadFile,File,Form,HTTPException,Request
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pipeline import run
@@ -46,6 +46,11 @@ def to_win_path(p):
 
 
 app=FastAPI();jobs={}
+
+# OpenField Station: Jarvis, RapQuest, personas, the Academy and the War Room.
+from station.api import router as station_router, init as station_init
+station_init(RUNS)
+app.include_router(station_router)
 @app.get('/')
 def index():return FileResponse(ROOT/'static/index.html')
 
@@ -188,6 +193,114 @@ def seedance(ident:str,prompt:str=Form(...),sirio:UploadFile=File(...),tein:Uplo
         (folder/'status.json').write_text(json.dumps(jobs[ident]))
     threading.Thread(target=collect,daemon=True).start()
     return {'request_id':request_id,'id':ident,'state':'running','status':jobs[ident]['status']}
+
+@app.get('/local/status')
+def local_status():
+    from comfy_bridge import status
+    return status()
+
+@app.post('/jobs/{ident}/local')
+def local_generate(ident:str,prompt:str=Form(...),workflow:str=Form(...),sirio:UploadFile=File(...),seed:str=Form('')):
+    """Higgsfield-style character swap on your own GPU through ComfyUI. Free per render, same QA gate."""
+    if len(ident)!=32 or not all(c in '0123456789abcdef' for c in ident):raise HTTPException(404)
+    folder=RUNS/ident
+    if not folder.exists():raise HTTPException(404)
+    suffix=Path(sirio.filename or '').suffix.lower()
+    if suffix not in ['.png','.jpg','.jpeg','.webp']:raise HTTPException(400,'Local workflows take an image reference (png, jpg, webp).')
+    ref=folder/('local-reference'+suffix)
+    with ref.open('wb') as f:shutil.copyfileobj(sirio.file,f)
+    from comfy_bridge import submit,wait_and_finish,load,is_vace
+    try:vace=is_vace(load(workflow)[1])
+    except ValueError as e:raise HTTPException(400,str(e))
+    if vace:return start_crew(ident,folder,{'all':ref},workflow,prompt,seed,0,None,'custom')
+    def log(s):
+        jobs.setdefault(ident,{'id':ident}).update(status=s)
+        jobs[ident].setdefault('logs',[]).append(f"[{time.strftime('%H:%M:%S')}] {s}")
+    jobs[ident]={'id':ident,'state':'running','status':'Preparing local render','logs':[]}
+    try:pid=submit(folder,prompt,ref,workflow,seed or None,log)
+    except ValueError as e:
+        jobs[ident].update(state='error',status=str(e))
+        raise HTTPException(409 if 'approv' in str(e).lower() or 'review' in str(e).lower() else 400,str(e))
+    except Exception as e:
+        jobs[ident].update(state='error',status=f'ComfyUI unreachable: {type(e).__name__}')
+        raise HTTPException(502,'ComfyUI is not reachable. Start it, or set COMFYUI_URL in .env.')
+    def collect():
+        try:
+            wait_and_finish(folder,pid,log)
+            jobs[ident].update(state='done',status='Local render ready · entire original source audio',final_url='/runs/'+ident+'/final-preview.mp4')
+        except Exception as e:
+            jobs[ident].update(state='error',status=str(e)+(' · raw render kept as local-result.mp4' if (folder/'local-result.mp4').exists() else ''))
+        (folder/'status.json').write_text(json.dumps({k:v for k,v in jobs[ident].items() if k!='logs'}))
+    threading.Thread(target=collect,daemon=True).start()
+    return {'id':ident,'state':'running','status':jobs[ident]['status'],'prompt_id':pid}
+
+def job_folder(ident):
+    if len(ident)!=32 or not all(c in '0123456789abcdef' for c in ident):raise HTTPException(404)
+    folder=RUNS/ident
+    if not folder.exists():raise HTTPException(404)
+    return folder
+
+def start_crew(ident,folder,refs,workflow,prompt,seed,start,seconds,preset):
+    """Crew swap (Wan 2.1 VACE): every person gets their own reference, rendered in overlapping chunks."""
+    import crew_swap
+    from mask_review import require_approved
+    from comfy_bridge import status as comfy_status
+    if jobs.get(ident,{}).get('state')=='running':raise HTTPException(409,'A render is already running for this clip.')
+    try:require_approved(folder)
+    except ValueError as e:raise HTTPException(409,str(e))
+    try:found={p['id'] for p in crew_swap.people(folder)['people']}
+    except ValueError as e:raise HTTPException(409,str(e))
+    missing=[str(k) for k in refs if k!='all' and k not in found]
+    if missing:raise HTTPException(400,f"No person {', '.join(missing)} in this clip (found {len(found)}).")
+    if not comfy_status()['ok']:raise HTTPException(502,'ComfyUI is not reachable. Start it, or set COMFYUI_URL in .env.')
+    def log(s):
+        jobs.setdefault(ident,{'id':ident}).update(status=s)
+        jobs[ident].setdefault('logs',[]).append(f"[{time.strftime('%H:%M:%S')}] {s}")
+    jobs[ident]={'id':ident,'state':'running','status':'Preparing crew swap','logs':[]}
+    def work():
+        try:
+            out=crew_swap.run(folder,refs,workflow,prompt,seed,start,seconds,preset,status=log)
+            jobs[ident].update(state='done',status='Crew swap ready · original audio for the window',final_url='/runs/'+ident+'/'+out.name)
+        except Exception as e:
+            jobs[ident].update(state='error',status=str(e)[:500]+(' · finished chunks are cached in crew/, run again to resume' if (folder/'crew').exists() else ''))
+        (folder/'status.json').write_text(json.dumps({k:v for k,v in jobs[ident].items() if k!='logs'}))
+    threading.Thread(target=work,daemon=True).start()
+    return {'id':ident,'state':'running','status':jobs[ident]['status'],'mode':'crew'}
+
+@app.get('/jobs/{ident}/people')
+def job_people(ident:str,refresh:bool=False):
+    """Number the people in a prepared clip (left to right) with a thumbnail each."""
+    folder=job_folder(ident)
+    import crew_swap
+    try:info=crew_swap.split_people(folder) if refresh else crew_swap.people(folder)
+    except ValueError as e:raise HTTPException(409,str(e))
+    for p in info['people']:p['thumb_url']='/runs/'+ident+'/'+p['thumb']
+    info['presets']={k:{'label':v['label'],'seconds':v['seconds'],'people':v['people']} for k,v in crew_swap.PRESETS.items()}
+    progress=folder/'crew'/'progress.json'
+    info['progress']=json.loads(progress.read_text()) if progress.exists() else None
+    return info
+
+@app.post('/jobs/{ident}/crew')
+async def crew(ident:str,request:Request):
+    """Swap each person with their own reference: form fields ref_1, ref_2, ... (or ref_all), plus workflow, preset, start, seconds."""
+    folder=job_folder(ident)
+    form=await request.form()
+    refs={}
+    for key,value in form.multi_items():
+        if not key.startswith('ref_') or not hasattr(value,'filename') or not value.filename:continue
+        pid=key[4:]
+        if pid!='all' and not pid.isdigit():raise HTTPException(400,f'Unknown person {pid}.')
+        suffix=Path(value.filename).suffix.lower()
+        if suffix not in ['.png','.jpg','.jpeg','.webp']:raise HTTPException(400,'References must be images (png, jpg, webp).')
+        target=folder/f'crew-ref-{pid}{suffix}'
+        with target.open('wb') as f:shutil.copyfileobj(value.file,f)
+        refs['all' if pid=='all' else int(pid)]=target
+    if not refs:raise HTTPException(400,'Attach a reference image for at least one person.')
+    num=lambda k,d:float(form.get(k)) if str(form.get(k) or '').strip() else d
+    try:start,seconds=num('start',0.0),num('seconds',None)
+    except ValueError:raise HTTPException(400,'Start and seconds must be numbers.')
+    return start_crew(ident,folder,refs,str(form.get('workflow') or 'wan21-vace-swap.json'),str(form.get('prompt') or ''),
+                      str(form.get('seed') or '') or None,start,seconds,str(form.get('preset') or 'custom'))
 
 @app.post('/jobs/{ident}/finish')
 def finish(ident:str,video:UploadFile=File(...)):

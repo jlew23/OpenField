@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenField Station · Personas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Syne:wght@700;800;900&family=JetBrains+Mono:wght@500;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/station/station.css">
+<style>
+.p-hero { display: grid; grid-template-columns: 120px 1fr; gap: 22px; align-items: center; padding: 26px; border-radius: 20px; border: 1px solid var(--line); background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 22%, #0d0f14), #0d0f14 60%); margin-bottom: 18px; }
+.p-glyph { width: 120px; height: 120px; border-radius: 28px; display: grid; place-items: center; font-family: var(--display); font-size: 64px; font-weight: 900; color: #000; background: var(--accent); box-shadow: 0 20px 60px -20px var(--accent); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.pcard { text-decoration: none; border-radius: 16px; border: 1px solid var(--line); padding: 18px; background: linear-gradient(160deg, color-mix(in srgb, var(--c) 16%, #12151c), #0d0f14); transition: transform .15s, border-color .15s; display: flex; flex-direction: column; gap: 10px; }
+.pcard:hover { transform: translateY(-3px); border-color: var(--c); }
+.pcard .g { width: 52px; height: 52px; border-radius: 14px; background: var(--c); color: #000; display: grid; place-items: center; font-family: var(--display); font-weight: 900; font-size: 24px; }
+@media (max-width: 700px) { .p-hero { grid-template-columns: 1fr; padding: 18px; } .p-glyph { width: 72px; height: 72px; font-size: 38px; border-radius: 18px; } }
+.pocket { position: relative; height: 26px; background: #11141b; border-radius: 8px; margin-top: 6px; }
+.pocket .zone { position: absolute; top: 0; bottom: 0; background: var(--accent); opacity: .7; border-radius: 8px; }
+.pocket .ticks { position: absolute; inset: 0; display: flex; justify-content: space-between; padding: 0 6px; font-size: 10px; color: var(--mute); align-items: flex-end; font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap" id="root"></div>
+<script src="/static/station/station.js"></script>
+<script>
+const S = Station; S.shell('Personas');
+const id = S.qs('id');
+
+async function roster() {
+  const ps = await S.get('/api/personas');
+  S.$('#root').innerHTML = `<div class="eyebrow">The crew</div><h1 class="big" style="margin:6px 0 8px">Personas</h1>
+    <p class="dim" style="max-width:640px;margin-bottom:22px">Style studies built on the masters' mechanics, a coach, Jarvis, and (once you graduate) your own forged persona. Every conversation nudges your trajectory.</p>
+    <div class="cards">${ps.map(p => `<a class="pcard" href="?id=${p.id}" style="--c:${p.color || '#888'}">
+      <div class="row"><div class="g">${S.esc(p.glyph || p.name[0])}</div><div><b>${S.esc(p.name)}</b><div class="small mute">${S.esc(p.handle || '')}${p.artist ? ' · ' + S.esc(p.artist) : ''}</div></div></div>
+      <div class="small dim">${S.esc(p.tagline || '')}</div>
+      <div class="row">${(p.mechanics || []).slice(0, 3).map(m => `<span class="chip">${S.esc(m)}</span>`).join('')}</div></a>`).join('')}
+      <a class="pcard" href="#" id="new-p" style="--c:#555;justify-content:center;align-items:center;text-align:center"><div class="g" style="background:#333;color:#fff">+</div><b>Create a persona</b><span class="small mute">Write your own system prompt</span></a>
+    </div>`;
+  S.$('#new-p').onclick = e => { e.preventDefault(); const name = prompt('Persona name?'); if (!name) return; const pid = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); S.put('/api/personas/' + pid, { name, role: 'rapper', uses_doctrine: true, color: '#9575CD', prompt: `You are ${name}, a rap writing persona. Describe your voice, mechanics and pocket here.`, pocket: [3.5, 6.5] }).then(() => location.href = '?id=' + pid); };
+}
+
+async function page() {
+  let p; try { p = await S.get('/api/personas/' + id); } catch (e) { S.$('#root').innerHTML = '<div class="empty">Persona not found. <a href="/station/persona">Back to the roster</a></div>'; return; }
+  document.documentElement.style.setProperty('--accent', p.color || 'var(--volt)');
+  document.title = 'OpenField Station · ' + p.name;
+  const raps = ['rapper', 'coach'].includes(p.role);
+  const [lo, hi] = p.pocket || [0, 0];
+  S.$('#root').innerHTML = `
+    <div class="p-hero">
+      <div class="p-glyph">${S.esc(p.glyph || p.name[0])}</div>
+      <div>
+        <div class="eyebrow">${S.esc(p.handle || p.role || '')}${p.artist ? ' · ' + S.esc(p.artist) : ''}</div>
+        <h1 class="big" style="font-size:clamp(2rem,5vw,3.6rem);margin:4px 0 8px">${S.esc(p.name)}</h1>
+        <p class="dim" style="max-width:720px">${S.esc(p.tagline || '')}</p>
+        ${p.signature ? `<p style="margin-top:8px"><b>Signature:</b> <span class="dim">${S.esc(p.signature)}</span></p>` : ''}
+      </div>
+    </div>
+    <div class="grid" style="grid-template-columns:minmax(0,1.5fr) minmax(0,1fr)">
+      <section class="panel"><div class="panel-head"><h3>Talk to ${S.esc(p.name)}</h3><span class="small mute">${S.esc(p.voice || '')}</span></div><div id="chat"></div></section>
+      <aside class="stack">
+        ${raps && hi ? `<section class="panel"><h3>Pocket</h3><p class="small dim">${lo}–${hi} syllables per second. At 90 BPM that's about ${Math.round(lo * 2.67)}–${Math.round(hi * 2.67)} syllables per bar.</p>
+          <div class="pocket"><div class="zone" style="left:${lo / 11 * 100}%;width:${(hi - lo) / 11 * 100}%"></div><div class="ticks"><span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span></div></div></section>` : ''}
+        <section class="panel"><h3>Mechanics</h3><div class="row" style="margin-top:8px">${(p.mechanics || []).map(m => `<span class="chip">${S.esc(m)}</span>`).join('') || '<span class="mute small">None listed</span>'}</div>
+          ${(p.drills || []).length ? `<h3 style="margin-top:14px">Drills</h3><div class="stack" style="margin-top:8px">${p.drills.map(d => `<button class="btn small ghost" data-drill="${S.esc(d)}" style="justify-content:flex-start">▶ ${S.esc(d)}</button>`).join('')}</div>` : ''}
+        </section>
+        ${raps ? `<section class="panel"><h3>Quick cypher</h3><p class="small dim">Drop 2-4 bars. ${S.esc(p.name)} answers on your vowel sound.</p>
+          <textarea id="cy-bars" placeholder="Your bars, one per line" style="margin-top:8px;min-height:90px"></textarea>
+          <div class="row" style="margin-top:8px"><button class="btn primary small" id="cy-go">Pass the mic</button>
+          <a class="btn small" href="/station/rapquest?persona=${p.id}">Remix a song with ${S.esc(p.handle || p.name)}</a></div>
+          <div id="cy-out" style="margin-top:12px"></div></section>` : ''}
+        <section class="panel"><details><summary class="small dim" style="cursor:pointer">Edit persona prompt${p.builtin === false ? '' : ' (saves as an override)'}</summary>
+          <textarea id="ed" style="min-height:220px;margin-top:10px">${S.esc(p.prompt || '')}</textarea>
+          <div class="row" style="margin-top:8px"><button class="btn small primary" id="ed-save">Save</button><button class="btn small danger" id="ed-reset">${p.builtin === false ? 'Delete' : 'Reset to default'}</button></div>
+        </details></section>
+      </aside>
+    </div>`;
+  const chat = S.chatWidget(S.$('#chat'), { persona: p.id, name: p.name, glyph: p.glyph || p.name[0], color: p.color, greeting: p.greeting || '' });
+  S.$$('[data-drill]').forEach(b => b.onclick = () => chat.send(`Run the drill "${b.dataset.drill}" with me, step by step.`));
+  if (raps) S.$('#cy-go').onclick = async () => {
+    const bars = S.$('#cy-bars').value.trim(); if (!bars) return;
+    const btn = S.$('#cy-go'); btn.disabled = true; btn.textContent = 'Listening…';
+    try {
+      const r = await S.post('/api/cypher/riff', { persona: p.id, bars, mode: 'crew' });
+      S.$('#cy-out').innerHTML = `<div class="small mute">You</div>${S.lyricHTML(r.you)}<hr class="sep"><div class="small" style="color:${p.color}">${S.esc(r.name)}</div>${S.lyricHTML(r.analysis)}
+        ${r.shoutout ? `<p class="small" style="margin-top:8px">🔊 ${S.esc(r.shoutout)}</p>` : ''}${r.note ? `<p class="small dim">📝 ${S.esc(r.note)}</p>` : ''}`;
+      S.celebrate(r.events);
+    } catch (e) { S.$('#cy-out').innerHTML = `<div class="bubble err">${S.esc(e.message)}</div>`; }
+    btn.disabled = false; btn.textContent = 'Pass the mic';
+  };
+  S.$('#ed-save').onclick = async () => { await S.put('/api/personas/' + p.id, { prompt: S.$('#ed').value }); S.toast('Persona saved', 'quest'); };
+  S.$('#ed-reset').onclick = async () => { if (!confirm('Remove your edits to this persona?')) return; const r = await S.del('/api/personas/' + p.id); location.href = r.restored_builtin ? '?id=' + p.id : '/station/persona'; };
+}
+id ? page() : roster();
+</script>
+</body>
+</html>
