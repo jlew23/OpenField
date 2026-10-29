@@ -187,7 +187,7 @@ Open `http://127.0.0.1:8770/station`, or click **ENTER THE STATION** on the Stud
 - **RapQuest**: lyric sheets on a 16-step bar grid, rhyme-vowel colouring, beat/BPM detection, persona remixes that
   fit a new tempo, REAPER-style takes & comping, and a Pocket Trainer that measures if you rap ahead of or behind the beat.
 - **Personas**: the Bible Coach plus style studies (Biggie, Slim Shady, King Von, J. Cole), each with its own page.
-- **The Academy**: your Rap Writing Bible as a game, with drills, graded report cards, boss fights, Listening Labs
+- **The Academy**: the built-in Rap Writing Bible as a game, with drills, graded report cards, boss fights, Listening Labs
   from your Spotify, cypher battles, the vowel-pattern matrix, and **the Forge**, which builds your own rapper persona.
 - **War Room**: systems board, live feed, persona council, briefings.
 - **Local GPU generation**: run the character swap on your own GPU through ComfyUI (Wan 2.2 Animate). See `docs/LOCAL-GENERATION.md`.

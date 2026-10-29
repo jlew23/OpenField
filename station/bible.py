@@ -1,7 +1,8 @@
 """Turn THE RAP WRITING BIBLE (markdown) into a playable curriculum.
 
-The book itself is the user's and stays out of git: it is loaded from the
-Station data folder (uploaded in the Academy) or from station/knowledge/.
+The Bible ships with OpenField (station/bible/RAP-WRITING-BIBLE.md): it is the
+Academy's built-in rapper-builder methodology. A newer edition can be dropped
+into the Station data folder (or station/knowledge/) and takes precedence.
 Everything here is structure: levels, chapters, drills, tests, routines,
 the skill ladder and the reference appendices.
 """
@@ -9,6 +10,7 @@ import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+BUNDLED = HERE / 'bible' / 'RAP-WRITING-BIBLE.md'
 _cache = {}
 _data_dir = None
 
@@ -24,6 +26,7 @@ def source_path():
     if _data_dir:
         cands.append(_data_dir / 'rap-bible.md')
     cands += sorted((HERE / 'knowledge').glob('*[Bb][Ii][Bb][Ll][Ee]*.md'))
+    cands.append(BUNDLED)
     for c in cands:
         if c.exists():
             return c
@@ -362,3 +365,15 @@ def outline(data):
         out['levels'].append({**{k: v for k, v in lvl.items() if k != 'chapters'},
                               'chapters': [{k: v for k, v in c.items() if k != 'body'} for c in lvl['chapters']]})
     return out
+
+
+def edition():
+    """Which copy is in use: 'built-in' or 'custom'."""
+    p = source_path()
+    return 'built-in' if p == BUNDLED else ('custom' if p else 'missing')
+
+
+def reset_to_builtin():
+    if _data_dir and (_data_dir / 'rap-bible.md').exists():
+        (_data_dir / 'rap-bible.md').unlink()
+    _cache.clear()

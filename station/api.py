@@ -391,6 +391,7 @@ def academy_home():
     data = bible.load()
     snap = academy.snapshot()
     snap['curriculum'] = bible.outline(data) if data else None
+    snap['edition'] = bible.edition()
     snap['reviews_due'] = len(academy.reviews_due(20))
     snap['forge'] = {k: v for k, v in forge.status().items() if k != 'trajectory'}
     return snap
@@ -422,10 +423,16 @@ def upload_bible(file: UploadFile = File(...)):
     return {'ok': True, 'levels': len(data['levels']), 'chapters': len(bible.chapters(data))}
 
 
+@router.post('/api/academy/bible/reset')
+def reset_bible():
+    bible.reset_to_builtin()
+    return {'ok': True, 'edition': bible.edition()}
+
+
 def _require_bible():
     data = bible.load()
     if not data:
-        raise HTTPException(409, 'Import your Rap Writing Bible first.')
+        raise HTTPException(409, 'The Rap Writing Bible is missing from station/bible/.')
     return data
 
 

@@ -49,8 +49,8 @@ function closeModal() { S.$('#m-bg').classList.remove('open'); S.$('#m').classLi
 /* ------------------------------------------------------------ import */
 function importView() {
   $v().innerHTML = `<div class="panel glow" style="max-width:680px;margin:30px auto;text-align:center;padding:40px">
-    <div class="eyebrow">First things first</div><h1 class="big" style="font-size:3rem;margin:8px 0">Load your Bible</h1>
-    <p class="dim">Drop the markdown version of THE RAP WRITING BIBLE. It stays on this machine. The Academy turns its levels, chapters, drills and appendices into the game.</p>
+    <div class="eyebrow">Missing curriculum</div><h1 class="big" style="font-size:3rem;margin:8px 0">Bible not found</h1>
+    <p class="dim">The built-in RAP WRITING BIBLE should live at station/bible/RAP-WRITING-BIBLE.md. Restore it from git, or load a copy here.</p>
     <label class="btn primary" style="margin-top:20px">Choose RAP-WRITING-BIBLE.md<input type="file" id="bible-file" accept=".md,.txt" hidden></label>
     <p class="small mute" id="imp-msg" style="margin-top:12px"></p></div>`;
   S.$('#bible-file').onchange = async e => {
@@ -421,12 +421,15 @@ async function settings() {
     <label class="field">Jarvis tone<select id="st-tone">${['gentle', 'dry', 'roast'].map(t => `<option ${p.jarvis_tone === t ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
     <label class="field">Placement (start at level)<select id="st-place">${[1, 2, 3, 4].map(l => `<option ${p.placement === l ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
     <div class="stack" style="margin-top:14px">${[['sounds', 'Reward sounds'], ['show_totals', 'Show XP totals (off = only today\'s gains)'], ['leaderboard', 'Lab leaderboard vs the crew']].map(([k, l]) => `<label class="row small"><input type="checkbox" data-t="${k}" ${p[k] ? 'checked' : ''}> ${l}</label>`).join('')}</div>
-    <div class="row" style="margin-top:16px"><button class="btn primary" id="st-save">Save</button><label class="btn ghost">Re-import Bible<input type="file" id="st-bible" accept=".md,.txt" hidden></label></div></section>`;
+    <div class="row" style="margin-top:16px"><button class="btn primary" id="st-save">Save</button></div>
+    <hr class="sep"><div class="row"><div style="flex:1"><b>The Rap Writing Bible</b><div class="small dim">Edition in use: ${A.snap.edition === 'custom' ? 'a newer edition you loaded' : 'built-in'}</div></div>
+      <label class="btn small ghost">Load a newer edition<input type="file" id="st-bible" accept=".md,.txt" hidden></label>${A.snap.edition === 'custom' ? '<button class="btn small" id="st-reset">Back to built-in</button>' : ''}</div></section>`;
   S.$('#st-save').onclick = async () => {
     await S.put('/api/academy/profile', { name: S.$('#st-name').value, title: S.$('#st-title').value, rhythm_mode: S.$('#st-mode').value, weekly_goal: +S.$('#st-goal').value, session: +S.$('#st-sess').value, jarvis_tone: S.$('#st-tone').value, ...Object.fromEntries(S.$$('[data-t]').map(c => [c.dataset.t, c.checked])) });
     await S.post('/api/academy/placement', { level: +S.$('#st-place').value }); A.snap = null; await load(); S.toast('Saved', 'quest');
   };
-  S.$('#st-bible').onchange = async e => { const fd = new FormData(); fd.append('file', e.target.files[0]); try { await S.api('/api/academy/bible', { method: 'POST', body: fd }); S.toast('Bible re-imported'); } catch (err) { S.toast(err.message); } };
+  S.$('#st-bible').onchange = async e => { const fd = new FormData(); fd.append('file', e.target.files[0]); try { await S.api('/api/academy/bible', { method: 'POST', body: fd }); S.toast('New edition loaded'); A.snap = null; await load(); settings(); } catch (err) { S.toast(err.message); } };
+  if (S.$('#st-reset')) S.$('#st-reset').onclick = async () => { await S.post('/api/academy/bible/reset'); A.snap = null; await load(); settings(); S.toast('Back to the built-in Bible'); };
 }
 
 /* ------------------------------------------------------------ the forge */

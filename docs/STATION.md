@@ -73,7 +73,8 @@ you get mean offset (ms ahead/behind), spread, and % within 30 ms.
 
 ## The Academy
 
-Import your Bible once (it stays local and is git-ignored). The parser turns it into 4 levels, 21 chapters, the
+The Rap Writing Bible ships built in (`station/bible/RAP-WRITING-BIBLE.md`); it is the Academy's methodology. You can
+load a newer edition from Academy settings and go back to the built-in one at any time. The parser turns it into 4 levels, 21 chapters, the
 drills (each mapped to a practice form: bars, vowel drill, double-stitch skeleton, idiom flip, wordplay, story with
 the Core Five, hook, cut, transcription, performance/notebook), graduation **boss fights**, daily routines, the
 skill ladder, the 12-week roadmap and the appendices (matrix, word bank, idioms, homophones, multi-meanings,
@@ -138,7 +139,7 @@ chosen LLM sees.
 
 ## Privacy & safety notes
 
-- All Station data lives in `Documents/openfield/station/` (SQLite DB, beats, your Bible).
+- All Station data lives in `Documents/openfield/station/` (SQLite DB, beats, any custom Bible edition).
 - The app listens on `0.0.0.0:8770` (as before), so anyone on your network can open it and use your configured
   LLM. Run it on a trusted network.
 - Spotify tokens are stored locally; disconnect from the Lab.
